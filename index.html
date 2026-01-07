@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>树赢仔相框生成器</title>
+<title>高清自由头像框生成器</title>
 <style>
 body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; margin-top: 20px; }
 #canvasContainer { position: relative; width: 400px; height: 400px; border: 1px solid #ccc; cursor: grab; touch-action: none; }
@@ -14,7 +14,7 @@ button { padding: 6px 16px; font-size: 16px; }
 </head>
 <body>
 
-<h2>树赢仔像框生成器</h2>
+<h2>高清自由头像框生成器</h2>
 <input type="file" id="upload" accept="image/*">
 <div id="canvasContainer">
   <canvas id="photoCanvas" width="400" height="400"></canvas>
@@ -30,12 +30,12 @@ const frameCtx = frameCanvas.getContext('2d');
 const uploadInput = document.getElementById('upload');
 const downloadBtn = document.getElementById('downloadBtn');
 
-// 高分辨率下载尺寸
+// 高清下载尺寸
 const HD_SIZE = 2000;
 
 let photoImg = new Image();
 let frameImg = new Image();
-frameImg.src = 'frame.png'; // <-- 你的透明框 PNG
+frameImg.src = 'frame.png'; // 透明框 PNG
 frameImg.onload = () => {
     frameCtx.clearRect(0,0,frameCanvas.width,frameCanvas.height);
     frameCtx.drawImage(frameImg,0,0,frameCanvas.width,frameCanvas.height);
@@ -44,6 +44,7 @@ frameImg.onload = () => {
 // 用户头像控制变量
 let offsetX=0, offsetY=0;
 let scale=1;
+let imgNaturalWidth=0, imgNaturalHeight=0;
 let isDragging=false;
 let startX,startY;
 let lastDistance=0;
@@ -60,23 +61,34 @@ uploadInput.addEventListener('change', e=>{
 });
 
 photoImg.onload = ()=>{
-    offsetX=0; offsetY=0; scale=1;
+    imgNaturalWidth = photoImg.naturalWidth;
+    imgNaturalHeight = photoImg.naturalHeight;
+
+    // 按照 canvas 尺寸自适应，同时保持比例
+    const canvasRatio = photoCanvas.width / photoCanvas.height;
+    const imgRatio = imgNaturalWidth / imgNaturalHeight;
+
+    if(imgRatio > canvasRatio){
+        // 图片宽大于高
+        scale = photoCanvas.width / imgNaturalWidth;
+    } else {
+        scale = photoCanvas.height / imgNaturalHeight;
+    }
+
+    // 初始位置居中
+    const w = imgNaturalWidth * scale;
+    const h = imgNaturalHeight * scale;
+    offsetX = (photoCanvas.width - w)/2;
+    offsetY = (photoCanvas.height - h)/2;
+
     drawPhoto();
 }
 
 // 绘制头像
 function drawPhoto(){
     photoCtx.clearRect(0,0,photoCanvas.width,photoCanvas.height);
-    const w = photoCanvas.width * scale;
-    const h = photoCanvas.height * scale;
-
-    // 限制头像不会完全拖出画布
-    const minX = photoCanvas.width - w;
-    const minY = photoCanvas.height - h;
-    if(offsetX>0) offsetX=0;
-    if(offsetY>0) offsetY=0;
-    if(offsetX<minX) offsetX=minX;
-    if(offsetY<minY) offsetY=minY;
+    const w = imgNaturalWidth * scale;
+    const h = imgNaturalHeight * scale;
 
     photoCtx.drawImage(photoImg, offsetX, offsetY, w, h);
 }
@@ -84,26 +96,34 @@ function drawPhoto(){
 // 鼠标拖动
 photoCanvas.addEventListener('mousedown', e=>{
     isDragging=true;
-    startX=e.offsetX-offsetX;
-    startY=e.offsetY-offsetY;
+    startX = e.offsetX - offsetX;
+    startY = e.offsetY - offsetY;
     photoCanvas.style.cursor='grabbing';
 });
 photoCanvas.addEventListener('mousemove', e=>{
     if(!isDragging) return;
-    offsetX=e.offsetX-startX;
-    offsetY=e.offsetY-startY;
+    offsetX = e.offsetX - startX;
+    offsetY = e.offsetY - startY;
     drawPhoto();
 });
 photoCanvas.addEventListener('mouseup', ()=>{ isDragging=false; photoCanvas.style.cursor='grab'; });
 photoCanvas.addEventListener('mouseleave', ()=>{ isDragging=false; photoCanvas.style.cursor='grab'; });
 
-// 滚轮缩放
+// 滚轮缩放（鼠标位置为缩放中心）
 photoCanvas.addEventListener('wheel', e=>{
     e.preventDefault();
-    const delta = e.deltaY<0 ? 0.05 : -0.05;
+    const oldScale = scale;
+    const delta = e.deltaY<0?0.05:-0.05;
     scale += delta;
     if(scale<0.1) scale=0.1;
     if(scale>5) scale=5;
+
+    // 缩放中心为鼠标位置
+    const mouseX = e.offsetX;
+    const mouseY = e.offsetY;
+    offsetX = mouseX - (mouseX - offsetX) * (scale/oldScale);
+    offsetY = mouseY - (mouseY - offsetY) * (scale/oldScale);
+
     drawPhoto();
 });
 
@@ -135,7 +155,14 @@ photoCanvas.addEventListener('touchmove', e=>{
         scale *= factor;
         if(scale<0.1) scale=0.1;
         if(scale>5) scale=5;
-        lastDistance=distance;
+        lastDistance = distance;
+
+        // 缩放中心为两指中点
+        const midX = (e.touches[0].clientX + e.touches[1].clientX)/2;
+        const midY = (e.touches[0].clientY + e.touches[1].clientY)/2;
+        offsetX = midX - (midX - offsetX)*factor;
+        offsetY = midY - (midY - offsetY)*factor;
+
         drawPhoto();
     }
 });
@@ -149,17 +176,12 @@ downloadBtn.addEventListener('click', ()=>{
     hdCanvas.height = HD_SIZE;
     const ctx = hdCanvas.getContext('2d');
 
-    // 绘制头像
     const factor = HD_SIZE / photoCanvas.width;
-    ctx.drawImage(photoImg,
-        offsetX*factor,
-        offsetY*factor,
-        photoCanvas.width*factor*scale,
-        photoCanvas.height*factor*scale
-    );
+    const w = imgNaturalWidth * scale * factor;
+    const h = imgNaturalHeight * scale * factor;
+    ctx.drawImage(photoImg, offsetX*factor, offsetY*factor, w, h);
 
-    // 绘制框
-    ctx.drawImage(frameImg,0,0,HD_SIZE,HD_SIZE);
+    ctx.drawImage(frameImg, 0, 0, HD_SIZE, HD_SIZE);
 
     hdCanvas.toBlob(blob=>{
         const link = document.createElement('a');
