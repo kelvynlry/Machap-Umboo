@@ -3,214 +3,211 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>树赢仔像框生成器</title>
+<title>照片编辑器</title>
 <style>
-body {
-    font-family: sans-serif;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    margin-top: 20px;
-}
-#canvasContainer {
-    position: relative;
-    width: 400px;
-    height: 400px;
-    border: 1px solid #ccc;
-    cursor: grab;
-    touch-action: none;
-}
-canvas {
-    position: absolute;
-    top: 0;
-    left: 0;
-}
-#frameCanvas {
-    pointer-events: none; /* 框不拦截鼠标事件 */
-}
-input, button {
-    margin-top: 10px;
-}
-button {
-    padding: 6px 16px;
-    font-size: 16px;
-}
+    body {
+        font-family: sans-serif;
+        text-align: center;
+        background: #f5f5f5;
+    }
+
+    #editor-area {
+        width: 350px;
+        height: 350px;
+        margin: 20px auto;
+        background: white;
+        position: relative;
+        overflow: hidden;
+        border: 2px solid #ccc;
+        border-radius: 10px;
+        touch-action: none;
+    }
+
+    #user-photo {
+        position: absolute;
+        top: 0; left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transform-origin: center center;
+        touch-action: none;
+    }
+
+    .sticker {
+        position: absolute;
+        width: 100px;
+        cursor: move;
+        user-select: none;
+        touch-action: none;
+    }
+
+    #frame {
+        position: absolute;
+        top: 0; left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+    }
+
+    .btn {
+        padding: 10px 15px;
+        margin: 10px;
+        border: none;
+        background: #007bff;
+        color: white;
+        border-radius: 6px;
+        cursor: pointer;
+    }
+
+    .btn:hover {
+        background: #0056b3;
+    }
+
+    #sticker-list img, #frame-list img {
+        width: 70px;
+        margin: 5px;
+        cursor: pointer;
+    }
 </style>
 </head>
 <body>
 
-<h2>树赢仔像框生成器</h2>
-<input type="file" id="upload" accept="image/*">
-<div id="canvasContainer">
-    <canvas id="photoCanvas" width="400" height="400"></canvas>
-    <canvas id="frameCanvas" width="400" height="400"></canvas>
+<h2>照片编辑器（手机 & 电脑都能用）</h2>
+
+<input type="file" id="upload-photo" accept="image/*" class="btn">
+
+<div id="editor-area">
+    <img id="user-photo">
+    <img id="frame">
 </div>
-<button id="downloadBtn">下载高清头像</button>
+
+<h3>选择边框（可选）</h3>
+<div id="frame-list">
+    <!-- 示例，用你自己的框 -->
+    <img src="frame1.png" onclick="setFrame(this.src)">
+    <img src="frame2.png" onclick="setFrame(this.src)">
+    <img src="frame3.png" onclick="removeFrame()">
+</div>
+
+<h3>选择贴纸</h3>
+<div id="sticker-list">
+    <!-- 你有30个贴纸，示例显示3个 -->
+    <img src="sticker1.png" onclick="addSticker(this.src)">
+    <img src="sticker2.png" onclick="addSticker(this.src)">
+    <img src="sticker3.png" onclick="addSticker(this.src)">
+</div>
+
+<button class="btn" onclick="downloadImage()">下载高清图</button>
 
 <script>
-const photoCanvas = document.getElementById('photoCanvas');
-const frameCanvas = document.getElementById('frameCanvas');
-const photoCtx = photoCanvas.getContext('2d');
-const frameCtx = frameCanvas.getContext('2d');
-const uploadInput = document.getElementById('upload');
-const downloadBtn = document.getElementById('downloadBtn');
+let userPhoto = document.getElementById("user-photo");
+let editor = document.getElementById("editor-area");
 
-// 高清下载尺寸
-const HD_SIZE = 2000;
+// 上传图片
+document.getElementById("upload-photo").onchange = function(e) {
+    let file = e.target.files[0];
+    userPhoto.src = URL.createObjectURL(file);
+};
 
-let photoImg = new Image();
-let frameImg = new Image();
-frameImg.src = 'frame.png'; // 透明框 PNG
-frameImg.onload = () => {
-    frameCtx.clearRect(0,0,frameCanvas.width,frameCanvas.height);
-    frameCtx.drawImage(frameImg,0,0,frameCanvas.width,frameCanvas.height);
+// 设置边框
+function setFrame(src) {
+    document.getElementById("frame").src = src;
+}
+function removeFrame() {
+    document.getElementById("frame").src = "";
 }
 
-// 控制变量
-let offsetX=0, offsetY=0;
-let scale=1;
-let imgNaturalWidth=0, imgNaturalHeight=0;
-let isDragging=false;
-let startX, startY;
-let lastDistance=0;
+// 添加贴纸
+function addSticker(src) {
+    let img = document.createElement("img");
+    img.src = src;
+    img.className = "sticker";
+    
+    img.style.left = "100px";
+    img.style.top = "100px";
+    
+    editor.appendChild(img);
 
-// 上传头像
-uploadInput.addEventListener('change', e=>{
-    const file = e.target.files[0];
-    if(!file) return;
-    const reader = new FileReader();
-    reader.onload = evt=>{
-        photoImg.src = evt.target.result;
-    }
-    reader.readAsDataURL(file);
-});
-
-photoImg.onload = ()=>{
-    imgNaturalWidth = photoImg.naturalWidth;
-    imgNaturalHeight = photoImg.naturalHeight;
-
-    // 按照 canvas 尺寸自适应，同时保持比例
-    const canvasRatio = photoCanvas.width / photoCanvas.height;
-    const imgRatio = imgNaturalWidth / imgNaturalHeight;
-
-    if(imgRatio > canvasRatio){
-        scale = photoCanvas.width / imgNaturalWidth;
-    } else {
-        scale = photoCanvas.height / imgNaturalHeight;
-    }
-
-    // 初始位置居中
-    const w = imgNaturalWidth * scale;
-    const h = imgNaturalHeight * scale;
-    offsetX = (photoCanvas.width - w)/2;
-    offsetY = (photoCanvas.height - h)/2;
-
-    drawPhoto();
+    enableDragAndScale(img);
 }
 
-// 绘制头像
-function drawPhoto(){
-    photoCtx.clearRect(0,0,photoCanvas.width,photoCanvas.height);
-    const w = imgNaturalWidth * scale;
-    const h = imgNaturalHeight * scale;
-    photoCtx.drawImage(photoImg, offsetX, offsetY, w, h);
+// 启用贴纸拖动 + 缩放
+function enableDragAndScale(el) {
+    let isDragging = false;
+    let startX, startY;
+
+    el.addEventListener("pointerdown", e => {
+        isDragging = true;
+        startX = e.clientX - el.offsetLeft;
+        startY = e.clientY - el.offsetTop;
+        el.setPointerCapture(e.pointerId);
+    });
+
+    el.addEventListener("pointermove", e => {
+        if (!isDragging) return;
+        el.style.left = (e.clientX - startX) + "px";
+        el.style.top = (e.clientY - startY) + "px";
+    });
+
+    el.addEventListener("pointerup", () => isDragging = false);
+
+    // 双指缩放
+    let scale = 1;
+    let startingDistance = 0;
+
+    el.addEventListener("touchmove", e => {
+        if (e.touches.length == 2) {
+            e.preventDefault();
+            let dx = e.touches[0].clientX - e.touches[1].clientX;
+            let dy = e.touches[0].clientY - e.touches[1].clientY;
+            let dist = Math.sqrt(dx*dx + dy*dy);
+            
+            if (startingDistance === 0) {
+                startingDistance = dist;
+            } else {
+                scale *= dist / startingDistance;
+                el.style.transform = `scale(${scale})`;
+                startingDistance = dist;
+            }
+        }
+    });
+
+    el.addEventListener("touchend", () => startingDistance = 0);
 }
 
-// 鼠标拖动
-photoCanvas.addEventListener('mousedown', e=>{
-    isDragging=true;
-    startX=e.offsetX - offsetX;
-    startY=e.offsetY - offsetY;
-    photoCanvas.style.cursor='grabbing';
-});
-photoCanvas.addEventListener('mousemove', e=>{
-    if(!isDragging) return;
-    offsetX = e.offsetX - startX;
-    offsetY = e.offsetY - startY;
-    drawPhoto();
-});
-photoCanvas.addEventListener('mouseup', ()=>{ isDragging=false; photoCanvas.style.cursor='grab'; });
-photoCanvas.addEventListener('mouseleave', ()=>{ isDragging=false; photoCanvas.style.cursor='grab'; });
+// 生成高清图
+function downloadImage() {
+    let canvas = document.createElement("canvas");
+    let size = 1000; // 大图
+    canvas.width = size;
+    canvas.height = size;
+    let ctx = canvas.getContext("2d");
 
-// 鼠标滚轮缩放（缩放中心为鼠标位置）
-photoCanvas.addEventListener('wheel', e=>{
-    e.preventDefault();
-    const oldScale = scale;
-    const delta = e.deltaY<0?0.05:-0.05;
-    scale += delta;
-    if(scale<0.1) scale=0.1;
-    if(scale>5) scale=5;
+    // 绘制用户照片
+    ctx.drawImage(userPhoto, 0, 0, size, size);
 
-    const mouseX = e.offsetX;
-    const mouseY = e.offsetY;
-    offsetX = mouseX - (mouseX - offsetX)*(scale/oldScale);
-    offsetY = mouseY - (mouseY - offsetY)*(scale/oldScale);
+    // 绘制贴纸
+    document.querySelectorAll(".sticker").forEach(st => {
+        let rect = st.getBoundingClientRect();
+        let eRect = editor.getBoundingClientRect();
+        let x = (rect.left - eRect.left) * (size / eRect.width);
+        let y = (rect.top - eRect.top) * (size / eRect.height);
+        let w = st.offsetWidth * (size / eRect.width);
+        let h = st.offsetHeight * (size / eRect.height);
 
-    drawPhoto();
-});
+        ctx.drawImage(st, x, y, w, h);
+    });
 
-// 触屏拖动 + 捏合缩放
-photoCanvas.addEventListener('touchstart', e=>{
-    e.preventDefault();
-    if(e.touches.length===1){
-        isDragging=true;
-        startX = e.touches[0].clientX - offsetX;
-        startY = e.touches[0].clientY - offsetY;
-    } else if(e.touches.length===2){
-        isDragging=false;
-        const dx = e.touches[0].clientX - e.touches[1].clientX;
-        const dy = e.touches[0].clientY - e.touches[1].clientY;
-        lastDistance = Math.sqrt(dx*dx + dy*dy);
-    }
-});
-photoCanvas.addEventListener('touchmove', e=>{
-    e.preventDefault();
-    if(e.touches.length===1 && isDragging){
-        offsetX = e.touches[0].clientX - startX;
-        offsetY = e.touches[0].clientY - startY;
-        drawPhoto();
-    } else if(e.touches.length===2){
-        const dx = e.touches[0].clientX - e.touches[1].clientX;
-        const dy = e.touches[0].clientY - e.touches[1].clientY;
-        const distance = Math.sqrt(dx*dx + dy*dy);
-        const factor = distance / lastDistance;
-        scale *= factor;
-        if(scale<0.1) scale=0.1;
-        if(scale>5) scale=5;
-        lastDistance = distance;
+    // 绘制边框
+    let frame = document.getElementById("frame");
+    if (frame.src) ctx.drawImage(frame, 0, 0, size, size);
 
-        const midX = (e.touches[0].clientX + e.touches[1].clientX)/2;
-        const midY = (e.touches[0].clientY + e.touches[1].clientY)/2;
-        offsetX = midX - (midX - offsetX)*factor;
-        offsetY = midY - (midY - offsetY)*factor;
-
-        drawPhoto();
-    }
-});
-photoCanvas.addEventListener('touchend', e=>{ if(e.touches.length===0) isDragging=false; });
-
-// 下载高清 PNG
-downloadBtn.addEventListener('click', ()=>{
-    if(!photoImg.src) return alert("请先上传照片！");
-    const hdCanvas = document.createElement('canvas');
-    hdCanvas.width = HD_SIZE;
-    hdCanvas.height = HD_SIZE;
-    const ctx = hdCanvas.getContext('2d');
-
-    const factor = HD_SIZE / photoCanvas.width;
-    const w = imgNaturalWidth * scale * factor;
-    const h = imgNaturalHeight * scale * factor;
-    ctx.drawImage(photoImg, offsetX*factor, offsetY*factor, w, h);
-
-    ctx.drawImage(frameImg,0,0,HD_SIZE,HD_SIZE);
-
-    hdCanvas.toBlob(blob=>{
-        const link = document.createElement('a');
-        link.download='avatar_hd.png';
-        link.href=URL.createObjectURL(blob);
-        link.click();
-    },'image/png');
-});
+    // 下载
+    let link = document.createElement("a");
+    link.download = "result.png";
+    link.href = canvas.toDataURL("image/png");
+    link.click();
+}
 </script>
 
 </body>
