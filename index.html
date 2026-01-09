@@ -236,12 +236,57 @@ function downloadImage() {
   }
 }
 
-function finishDownload(canvas) {
-  const link = document.createElement("a");
-  link.download = "final_1080x1440.png";
-  link.href = canvas.toDataURL("image/png");
-  link.click();
+function downloadImage() {
+  const canvas = document.createElement("canvas");
+  canvas.width = 1080;
+  canvas.height = 1440;
+  const ctx = canvas.getContext("2d");
+
+  const editor = document.getElementById("editor-wrapper").getBoundingClientRect();
+  const scaleX = canvas.width / editor.width;
+  const scaleY = canvas.height / editor.height;
+
+  const elements = document.querySelectorAll(".movable");
+
+  elements.forEach(el => {
+    const rect = el.getBoundingClientRect();
+
+    const parentRect = editor;
+
+    let left = (rect.left - parentRect.left) * scaleX;
+    let top = (rect.top - parentRect.top) * scaleY;
+
+    let originalWidth = el.naturalWidth || rect.width;
+    let originalHeight = el.naturalHeight || rect.height;
+
+    let scale = el.dataset.scale ? Number(el.dataset.scale) : 1;
+    let rotate = el.dataset.rotate ? Number(el.dataset.rotate) * Math.PI / 180 : 0;
+
+    // 计算渲染尺寸（用原始大小 × 用户缩放 × UI 缩放）
+    let finalWidth = originalWidth * scale * (scaleX);
+    let finalHeight = originalHeight * scale * (scaleY);
+
+    ctx.save();
+    ctx.translate(left + finalWidth / 2, top + finalHeight / 2);
+    ctx.rotate(rotate);
+    ctx.drawImage(el, -finalWidth / 2, -finalHeight / 2, finalWidth, finalHeight);
+    ctx.restore();
+  });
+
+  // draw FRAME on top if enabled
+  const frame = document.getElementById("frame");
+  if (frame.style.display === "block") {
+    const frameImg = new Image();
+    frameImg.src = frame.src;
+    frameImg.onload = () => {
+      ctx.drawImage(frameImg, 0, 0, 1080, 1440);
+      finishDownload(canvas);
+    };
+  } else {
+    finishDownload(canvas);
+  }
 }
+
 </script>
 
 </body>
