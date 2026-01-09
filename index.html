@@ -3,40 +3,33 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>照片 + 框 + 表情包 生成器</title>
+<title>简单框 + 2 Emoji</title>
 
 <style>
-body {
-    font-family: Arial;
-    text-align: center;
-    margin: 20px;
-}
-
+body { font-family: Arial; text-align:center; }
 #canvasWrapper {
-    position: relative;
     width: 360px;
     height: 480px;
-    margin: auto;
-    border: 1px solid #ddd;
-    background: #eee;
+    margin:15px auto;
+    border:1px solid #ccc;
+    background:#eee;
+    position:relative;
 }
-
 canvas {
-    width: 100%;
-    height: 100%;
-    touch-action: none;
+    width:100%;
+    height:100%;
+    touch-action:none;
 }
-
-.sticker-picker img {
-    width: 60px;
-    margin: 4px;
-    cursor: pointer;
+.sticker-picker img{
+    width:60px;
+    margin:5px;
+    cursor:pointer;
 }
 </style>
 </head>
 <body>
 
-<h2>照片 + 边框 + 表情包 生成器</h2>
+<h2>框 + Emoji 测试版</h2>
 
 <input type="file" id="uploadPhoto" accept="image/*">
 
@@ -44,16 +37,16 @@ canvas {
 
 <label><input type="checkbox" id="toggleFrame"> 使用边框</label>
 
-<br><br>
-
-<h3>选择表情包：</h3>
-<div id="stickerPicker" class="sticker-picker"></div>
+<h3>选择 Emoji:</h3>
+<div class="sticker-picker">
+    <img src="stickers/emoji1.png" data-src="stickers/emoji1.png">
+    <img src="stickers/emoji2.png" data-src="stickers/emoji2.png">
+</div>
 
 <div id="canvasWrapper">
     <canvas id="mainCanvas" width="1080" height="1440"></canvas>
 </div>
 
-<br>
 <button id="downloadBtn">下载高清图</button>
 
 <script>
@@ -65,25 +58,15 @@ let frame = new Image();
 frame.src = "frames/frame1.png";
 
 let useFrame = false;
-
-// 自动加载 30 个 emoji
-const stickerPicker = document.getElementById("stickerPicker");
-for (let i = 1; i <= 30; i++) {
-    const img = document.createElement("img");
-    img.src = `stickers/emoji${i}.png`;
-    img.dataset.src = `stickers/emoji${i}.png`;
-    stickerPicker.appendChild(img);
-}
-
 let stickers = [];
 
-// 添加贴纸
-stickerPicker.addEventListener("click", e => {
+// 点击添加 emoji
+document.querySelector(".sticker-picker").addEventListener("click", e => {
     if (e.target.tagName === "IMG") {
-        let sticker = new Image();
-        sticker.src = e.target.dataset.src;
-        stickers.push({ img: sticker, x: 400, y: 400, size: 300 });
-        sticker.onload = drawCanvas;
+        let img = new Image();
+        img.src = e.target.dataset.src;
+        stickers.push({ img: img, x: 400, y: 400, size: 300 });
+        img.onload = drawCanvas;
     }
 });
 
@@ -95,22 +78,20 @@ document.getElementById("toggleFrame").addEventListener("change", e => {
 
 // 上传照片
 document.getElementById("uploadPhoto").addEventListener("change", e => {
-    let f = e.target.files[0];
     let reader = new FileReader();
-    reader.onload = function(evt) {
+    reader.onload = evt => {
         photo = new Image();
         photo.onload = drawCanvas;
         photo.src = evt.target.result;
     };
-    reader.readAsDataURL(f);
+    reader.readAsDataURL(e.target.files[0]);
 });
 
-// --- 照片拖动 / 缩放 ---
+// ---- 照片拖动/缩放 ----
 let photoX = 0, photoY = 0, photoScale = 1;
 let dragging = false;
 let lastX = 0, lastY = 0;
 
-// 鼠标拖动
 canvas.addEventListener("mousedown", e => {
     dragging = true;
     lastX = e.offsetX;
@@ -129,7 +110,6 @@ canvas.addEventListener("mousemove", e => {
 
 canvas.addEventListener("mouseup", () => dragging = false);
 
-// 滚轮缩放
 canvas.addEventListener("wheel", e => {
     e.preventDefault();
     photoScale += e.deltaY * -0.001;
@@ -138,27 +118,7 @@ canvas.addEventListener("wheel", e => {
     drawCanvas();
 });
 
-// 手机双指缩放
-let lastDist = 0;
-
-canvas.addEventListener("touchmove", e => {
-    e.preventDefault();
-    if (e.touches.length === 2) {
-        let dx = e.touches[0].clientX - e.touches[1].clientX;
-        let dy = e.touches[0].clientY - e.touches[1].clientY;
-        let dist = Math.sqrt(dx * dx + dy * dy);
-
-        if (lastDist !== 0) {
-            let zoom = dist / lastDist;
-            photoScale *= zoom;
-            photoScale = Math.max(0.2, Math.min(photoScale, 5));
-        }
-        lastDist = dist;
-        drawCanvas();
-    }
-});
-
-// 绘制画布
+// ---- 绘制内容 ----
 function drawCanvas() {
     ctx.clearRect(0,0,1080,1440);
 
@@ -168,20 +128,20 @@ function drawCanvas() {
         ctx.drawImage(photo, photoX, photoY, w, h);
     }
 
-    // 绘制贴纸
+    // emoji 绘制
     stickers.forEach(st => {
         ctx.drawImage(st.img, st.x, st.y, st.size, st.size);
     });
 
-    // 最后绘制边框
+    // 框
     if (useFrame) {
         ctx.drawImage(frame, 0, 0, 1080, 1440);
     }
 }
 
-// 下载高清图
+// ---- 下载高清图 ----
 document.getElementById("downloadBtn").addEventListener("click", () => {
-    const link = document.createElement("a");
+    let link = document.createElement("a");
     link.download = "output_1080x1440.jpg";
     link.href = canvas.toDataURL("image/jpeg", 1.0);
     link.click();
