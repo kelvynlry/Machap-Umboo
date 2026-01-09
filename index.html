@@ -1,287 +1,246 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8">
-<title>Photo + Frame + Emoji Editor</title>
-<style>
-  body { font-family: Arial; background:#222; color:white; text-align:center; }
+  <meta charset="UTF-8">
+  <title>Photo Editor</title>
+  <style>
+    body {
+      font-family: Arial;
+      background: #f2f2f2;
+      padding: 20px;
+    }
 
-  #editor {
-    position: relative;
-    width: 360px;
-    height: 480px;
-    margin: 20px auto;
-    background:#333;
-    border: 2px solid #555;
-    overflow: hidden;
-  }
+    #editor-wrapper {
+      position: relative;
+      width: 360px;
+      height: 480px;
+      border: 2px solid #ccc;
+      margin-bottom: 20px;
+      background: white;
+      overflow: hidden;
+    }
 
-  #userPhoto, .emoji {
-    position: absolute;
-    top: 0;
-    left: 0;
-    user-select: none;
-    touch-action: none;
-  }
+    #editor {
+      width: 100%;
+      height: 100%;
+      position: relative;
+    }
 
-  #frame {
-    position: absolute;
-    width: 360px;
-    height: 480px;
-    pointer-events:none;
-    display:none; /* 默认隐藏，可选择 */
-  }
+    .movable {
+      position: absolute;
+      cursor: move;
+      user-select: none;
+    }
 
-  .btn {
-    margin:6px;
-    padding:6px 12px;
-    border:none;
-    border-radius:6px;
-    background:#00aaff;
-    color:white;
-    cursor:pointer;
-  }
+    .emoji {
+      width: 80px;
+      height: 80px;
+    }
 
-  .emoji-delete {
-    position:absolute;
-    top:-10px;
-    right:-10px;
-    background:red;
-    color:white;
-    border-radius:50%;
-    padding:5px 8px;
-    cursor:pointer;
-    display:none;
-  }
-</style>
+    .selected {
+      outline: 2px dashed #00aaff;
+    }
+
+    #frame {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      top: 0;
+      left: 0;
+      display: none;
+    }
+
+    input[type="range"] {
+      width: 200px;
+    }
+  </style>
 </head>
 <body>
 
-<h2>编辑照片 + 边框 + Emoji</h2>
+<h2>照片编辑器</h2>
 
 <input type="file" id="upload" accept="image/*"><br><br>
 
-<button class="btn" onclick="toggleFrame()">切换边框</button>
-<button class="btn" onclick="addEmoji('emoji1.png')">Emoji 1</button>
-<button class="btn" onclick="addEmoji('emoji2.png')">Emoji 2</button>
+<button onclick="addEmoji('emoji1.png')">添加 Emoji 1</button>
+<button onclick="addEmoji('emoji2.png')">添加 Emoji 2</button>
+<button onclick="toggleFrame()">切换边框</button>
+<br><br>
 
-<div id="editor">
-  <img id="userPhoto" style="display:none;">
+<label>旋转：<input type="range" id="rotateSlider" min="-180" max="180" value="0" oninput="rotateSelected()"></label><br>
+<label>缩放：<input type="range" id="scaleSlider" min="0.2" max="3" step="0.1" value="1" oninput="scaleSelected()"></label>
+
+<br><br>
+
+<button onclick="downloadImage()">下载最终1080x1440高清图</button>
+
+<div id="editor-wrapper">
+  <div id="editor"></div>
   <img id="frame" src="frame1.png">
 </div>
 
-<button class="btn" onclick="downloadImage()">下载高清图</button>
-
 <script>
-//===========================
-// 1. 上传照片 + 拖动 + 缩放
-//===========================
-let photo = document.getElementById("userPhoto");
-let editor = document.getElementById("editor");
+let selectedItem = null;
+let photoElement = null;
 
-let photoScale = 1;
-let photoPos = { x:0, y:0 };
-let lastX, lastY;
+// ================== 上传照片 ==================
+document.getElementById("upload").addEventListener("change", function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
 
-document.getElementById("upload").onchange = function(e){
-  photo.src = URL.createObjectURL(e.target.files[0]);
-  photo.style.display = "block";
-  photo.style.width = "360px";
-  photo.style.transform = "translate(0px,0px) scale(1)";
-  photoScale = 1;
-  photoPos = {x:0, y:0};
-};
+  const img = new Image();
+  img.src = URL.createObjectURL(file);
 
-// 拖动
-photo.addEventListener("pointerdown", startDragPhoto);
-function startDragPhoto(e){
-  lastX = e.clientX;
-  lastY = e.clientY;
-
-  function move(e){
-    let dx = e.clientX - lastX;
-    let dy = e.clientY - lastY;
-    photoPos.x += dx;
-    photoPos.y += dy;
-    photo.style.transform = `translate(${photoPos.x}px, ${photoPos.y}px) scale(${photoScale})`;
-    lastX = e.clientX;
-    lastY = e.clientY;
-  }
-
-  function stop(){
-    document.removeEventListener("pointermove", move);
-    document.removeEventListener("pointerup", stop);
-  }
-
-  document.addEventListener("pointermove", move);
-  document.addEventListener("pointerup", stop);
-}
-
-// 滚轮缩放
-editor.addEventListener("wheel", function(e){
-  e.preventDefault();
-  if(e.deltaY < 0) photoScale += 0.05;
-  else photoScale -= 0.05;
-  if(photoScale < 0.2) photoScale = 0.2;
-  photo.style.transform = `translate(${photoPos.x}px, ${photoPos.y}px) scale(${photoScale})`;
+  img.onload = () => {
+    if (!photoElement) {
+      photoElement = document.createElement("img");
+      photoElement.classList.add("movable");
+      photoElement.style.left = "0px";
+      photoElement.style.top = "0px";
+      photoElement.style.width = "360px";
+      photoElement.style.transform = "rotate(0deg) scale(1)";
+      document.getElementById("editor").appendChild(photoElement);
+    }
+    photoElement.src = img.src;
+  };
 });
 
+// ================== 添加 Emoji ==================
+function addEmoji(src) {
+  const emoji = document.createElement("img");
+  emoji.src = src;
+  emoji.classList.add("movable", "emoji");
+  emoji.style.left = "100px";
+  emoji.style.top = "100px";
+  emoji.style.transform = "rotate(0deg) scale(1)";
+  
+  emoji.addEventListener("mousedown", () => selectItem(emoji));
 
-//===========================
-// 2. 添加 Emoji（拖动 + 缩放 + 旋转 + 删除）
-//===========================
-function addEmoji(src){
-  let emoji = document.createElement("div");
-  emoji.style.position = "absolute";
-  emoji.style.top = "200px";
-  emoji.style.left = "130px";
-  emoji.style.width = "100px";
-  emoji.style.height = "100px";
-
-  emoji.innerHTML = `
-    <img src="${src}" class="emoji" style="width:100%; height:100%;">
-    <div class="emoji-delete">X</div>
-  `;
-
-  editor.appendChild(emoji);
-
-  let img = emoji.querySelector("img");
-  let del = emoji.querySelector(".emoji-delete");
-
-  img.addEventListener("pointerdown", startDragEmoji);
-  img.addEventListener("click", ()=> del.style.display="block");
-  del.addEventListener("click", ()=> editor.removeChild(emoji));
-
-  // emoji 拖动
-  let pos = {x:130, y:200};
-  let scale = 1;
-  let rotation = 0;
-
-  function startDragEmoji(e){
-    lastX = e.clientX;
-    lastY = e.clientY;
-
-    function move(e){
-      let dx = e.clientX - lastX;
-      let dy = e.clientY - lastY;
-      pos.x += dx;
-      pos.y += dy;
-
-      emoji.style.transform = `translate(${pos.x}px, ${pos.y}px) scale(${scale}) rotate(${rotation}deg)`;
-      lastX = e.clientX;
-      lastY = e.clientY;
-    }
-
-    function stop(){
-      document.removeEventListener("pointermove", move);
-      document.removeEventListener("pointerup", stop);
-    }
-
-    document.addEventListener("pointermove", move);
-    document.addEventListener("pointerup", stop);
-  }
-
-  // emoji 滚轮缩放
-  emoji.addEventListener("wheel", function(e){
-    e.preventDefault();
-    if(e.deltaY < 0) scale += 0.05;
-    else scale -= 0.05;
-    if(scale < 0.1) scale = 0.1;
-
-    emoji.style.transform = `translate(${pos.x}px, ${pos.y}px) scale(${scale}) rotate(${rotation}deg)`;
-  });
-
-  // 手机双指旋转 + 缩放
-  let startDist = 0;
-  let startAngle = 0;
-
-  emoji.addEventListener("touchmove", function(e){
-    if(e.touches.length == 2){
-      e.preventDefault();
-
-      let x1 = e.touches[0].clientX;
-      let y1 = e.touches[0].clientY;
-      let x2 = e.touches[1].clientX;
-      let y2 = e.touches[1].clientY;
-
-      let dx = x2 - x1;
-      let dy = y2 - y1;
-
-      let dist = Math.sqrt(dx*dx + dy*dy);
-      let angle = Math.atan2(dy, dx) * 180 / Math.PI;
-
-      if(startDist === 0){
-        startDist = dist;
-        startAngle = angle;
-      } else {
-        scale *= dist / startDist;
-        rotation += angle - startAngle;
-        startDist = dist;
-        startAngle = angle;
-
-        emoji.style.transform = `translate(${pos.x}px, ${pos.y}px) scale(${scale}) rotate(${rotation}deg)`;
-      }
-    }
-  });
-
+  document.getElementById("editor").appendChild(emoji);
 }
 
+// ================== 选择元素 ==================
+document.getElementById("editor-wrapper").addEventListener("mousedown", function(e) {
+  if (e.target.classList.contains("movable")) {
+    selectItem(e.target);
+  } else {
+    deselectItem();
+  }
+});
 
-//===========================
-// 3. 切换边框显示
-//===========================
-function toggleFrame(){
-  let frame = document.getElementById("frame");
+function selectItem(item) {
+  deselectItem();
+  selectedItem = item;
+  item.classList.add("selected");
+}
+
+function deselectItem() {
+  if (selectedItem) selectedItem.classList.remove("selected");
+  selectedItem = null;
+}
+
+// ================== 拖动逻辑 ==================
+let offsetX, offsetY;
+document.addEventListener("mousedown", function(e) {
+  if (selectedItem && e.target === selectedItem) {
+    offsetX = e.offsetX;
+    offsetY = e.offsetY;
+
+    document.addEventListener("mousemove", moveItem);
+  }
+});
+
+document.addEventListener("mouseup", function() {
+  document.removeEventListener("mousemove", moveItem);
+});
+
+function moveItem(e) {
+  if (!selectedItem) return;
+  const rect = document.getElementById("editor-wrapper").getBoundingClientRect();
+
+  selectedItem.style.left = (e.clientX - rect.left - offsetX) + "px";
+  selectedItem.style.top = (e.clientY - rect.top - offsetY) + "px";
+}
+
+// ================== 控制旋转 & 缩放 ==================
+function rotateSelected() {
+  if (!selectedItem) return;
+  const scale = selectedItem.dataset.scale || 1;
+  const rotate = document.getElementById("rotateSlider").value;
+
+  selectedItem.style.transform = `rotate(${rotate}deg) scale(${scale})`;
+  selectedItem.dataset.rotate = rotate;
+}
+
+function scaleSelected() {
+  if (!selectedItem) return;
+  const scale = document.getElementById("scaleSlider").value;
+  const rotate = selectedItem.dataset.rotate || 0;
+
+  selectedItem.style.transform = `rotate(${rotate}deg) scale(${scale})`;
+  selectedItem.dataset.scale = scale;
+}
+
+// ================== 切换边框 ==================
+function toggleFrame() {
+  const frame = document.getElementById("frame");
   frame.style.display = frame.style.display === "none" ? "block" : "none";
 }
 
-
-//===========================
-// 4. 下载1080x1440高清图
-//===========================
-function downloadImage(){
-  let canvas = document.createElement("canvas");
+// ================== 下载高清 1080x1440 ==================
+function downloadImage() {
+  const canvas = document.createElement("canvas");
   canvas.width = 1080;
   canvas.height = 1440;
-  let ctx = canvas.getContext("2d");
+  const ctx = canvas.getContext("2d");
 
-  let scaleX = 1080 / 360;
-  let scaleY = 1440 / 480;
+  const scaleX = 1080 / 360;
+  const scaleY = 1440 / 480;
 
-  // draw photo
-  if(photo.src){
+  const elements = document.querySelectorAll(".movable");
+
+  elements.forEach(el => {
+    const rect = el.getBoundingClientRect();
+    const parentRect = document.getElementById("editor-wrapper").getBoundingClientRect();
+
+    const left = (rect.left - parentRect.left) * scaleX;
+    const top = (rect.top - parentRect.top) * scaleY;
+    const width = rect.width * scaleX;
+    const height = rect.height * scaleY;
+
     ctx.save();
-    ctx.translate(photoPos.x * scaleX, photoPos.y * scaleY);
-    ctx.scale(photoScale * scaleX, photoScale * scaleY);
-    ctx.drawImage(photo, 0, 0);
+
+    const rotate = el.dataset.rotate ? Number(el.dataset.rotate) * Math.PI / 180 : 0;
+    const scale = el.dataset.scale ? Number(el.dataset.scale) : 1;
+
+    ctx.translate(left + width / 2, top + height / 2);
+    ctx.rotate(rotate);
+    ctx.scale(scale, scale);
+
+    ctx.drawImage(el, -width / 2, -height / 2, width, height);
+
     ctx.restore();
-  }
-
-  // draw emojis
-  document.querySelectorAll("#editor > div").forEach(emoji=>{
-    let img = emoji.querySelector("img");
-    let rect = emoji.getBoundingClientRect();
-    let editorRect = editor.getBoundingClientRect();
-
-    let x = (rect.left - editorRect.left) * scaleX;
-    let y = (rect.top - editorRect.top) * scaleY;
-    let w = rect.width * scaleX;
-    let h = rect.height * scaleY;
-
-    ctx.drawImage(img, x, y, w, h);
   });
 
-  // draw frame if visible
-  let frame = document.getElementById("frame");
-  if(frame.style.display !== "none"){
-    ctx.drawImage(frame, 0, 0, 1080, 1440);
+  // 绘制边框
+  const frame = document.getElementById("frame");
+  if (frame.style.display === "block") {
+    const frameImg = new Image();
+    frameImg.src = frame.src;
+    frameImg.onload = () => {
+      ctx.drawImage(frameImg, 0, 0, 1080, 1440);
+      finishDownload(canvas);
+    }
+  } else {
+    finishDownload(canvas);
   }
+}
 
-  // download
-  let a = document.createElement("a");
-  a.download = "result.png";
-  a.href = canvas.toDataURL("image/png");
-  a.click();
+function finishDownload(canvas) {
+  const link = document.createElement("a");
+  link.download = "final_1080x1440.png";
+  link.href = canvas.toDataURL("image/png");
+  link.click();
 }
 </script>
 
