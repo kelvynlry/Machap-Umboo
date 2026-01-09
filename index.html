@@ -2,29 +2,52 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Editor 1080×1440</title>
+<title>1080x1440 Editor</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.2.4/fabric.min.js"></script>
+
 <style>
-  body { text-align: center; font-family: Arial; background: #f0f0f0; }
-  canvas { border: 1px solid #ccc; }
-  .tools { margin: 20px; }
+  body {
+    font-family: Arial;
+    text-align: center;
+    background: #f1f1f1;
+  }
+  canvas {
+    border: 1px solid #000;
+    margin-top: 10px;
+  }
+  .tools {
+    margin: 10px;
+  }
+  .emoji-container img {
+    width: 60px;
+    margin: 5px;
+    cursor: pointer;
+    border: 2px solid transparent;
+  }
+  .emoji-container img:hover {
+    border-color: #000;
+  }
 </style>
 </head>
+
 <body>
 
-<h2>Photo + Emoji Editor (1080x1440)</h2>
+<h2>固定 1080 x 1440 高清照片编辑器</h2>
 
-<!-- Tools -->
 <div class="tools">
-  <input type="file" id="uploadImage" accept="image/*">
-  <button id="addEmoji">Add Emoji</button>
-  <button id="toggleFrame">Toggle Frame</button>
-  <button id="deleteSelected">Delete Selected</button>
-  <button id="download">Download 1080x1440</button>
+  <input type="file" id="uploadImage" accept="image/*"><br><br>
+  <button id="toggleFrame">切换边框</button>
+  <button id="deleteSelected">删除选中对象</button>
+  <button id="download">下载（1080x1440）</button>
 </div>
 
-<!-- Canvas -->
-<canvas id="editorCanvas" width="360" height="480"></canvas>
+<h3>选择 Emoji:</h3>
+<div class="emoji-container">
+  <img src="emoji1.png" class="emoji-option">
+  <img src="emoji2.png" class="emoji-option">
+</div>
+
+<canvas id="editorCanvas" width="1080" height="1440"></canvas>
 
 <script src="editor.js"></script>
 

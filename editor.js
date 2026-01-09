@@ -1,31 +1,16 @@
-// fabric canvas (scaled preview 1/3 size, output still 1080x1440)
 const canvas = new fabric.Canvas("editorCanvas", {
-  width: 360,
-  height: 480,
-  preserveObjectStacking: true
+  width: 1080,
+  height: 1440,
+  preserveObjectStacking: true,
+  selection: true
 });
 
-const OUTPUT_WIDTH = 1080;
-const OUTPUT_HEIGHT = 1440;
 let frameObject = null;
 
-// Enable gestures (touch)
-canvas.on('touch:gesture', function (e) {
-  let obj = canvas.getActiveObject();
-  if (!obj) return;
-
-  if (e.e.touches && e.e.touches.length === 2) {
-    let scale = e.self.scale;
-    let rotation = e.self.rotation;
-
-    obj.scale(scale).rotate(rotation);
-    canvas.requestRenderAll();
-  }
-});
-
-// 1. Upload image
+// 上传照片
 document.getElementById("uploadImage").addEventListener("change", function (e) {
   let reader = new FileReader();
+
   reader.onload = function (event) {
     fabric.Image.fromURL(event.target.result, function (img) {
 
@@ -34,37 +19,43 @@ document.getElementById("uploadImage").addEventListener("change", function (e) {
         top: canvas.height / 2,
         originX: "center",
         originY: "center",
-        selectable: true,
-        hasRotatingPoint: true
+        hasControls: true
       });
 
-      img.scaleToWidth(canvas.width * 0.9);
+      img.scaleToWidth(900);
       canvas.add(img);
       canvas.setActiveObject(img);
       canvas.renderAll();
     });
   };
+
   reader.readAsDataURL(e.target.files[0]);
 });
 
-// 2. Add emoji
-document.getElementById("addEmoji").onclick = function () {
-  fabric.Image.fromURL("emoji1.png", function (emoji) {
-    emoji.set({
-      left: 150,
-      top: 150,
-      scaleX: 0.3,
-      scaleY: 0.3,
-      selectable: true,
-      hasRotatingPoint: true
-    });
-    canvas.add(emoji);
-    canvas.setActiveObject(emoji);
-    canvas.renderAll();
-  });
-};
+// 点击表情添加
+document.querySelectorAll(".emoji-option").forEach(img => {
+  img.addEventListener("click", function () {
 
-// 3. Toggle frame
+    fabric.Image.fromURL(img.src, function (emoji) {
+      emoji.set({
+        left: 300,
+        top: 300,
+        originX: "center",
+        originY: "center",
+        scaleX: 0.4,
+        scaleY: 0.4,
+        hasRotatingPoint: true
+      });
+
+      canvas.add(emoji);
+      canvas.setActiveObject(emoji);
+      canvas.renderAll();
+    });
+
+  });
+});
+
+// 切换边框
 document.getElementById("toggleFrame").onclick = function () {
   if (frameObject) {
     canvas.remove(frameObject);
@@ -76,55 +67,33 @@ document.getElementById("toggleFrame").onclick = function () {
         top: canvas.height / 2,
         originX: "center",
         originY: "center",
-        selectable: false,
-        evented: false
+        selectable: false
       });
 
       frame.scaleToWidth(canvas.width);
       frameObject = frame;
       canvas.add(frame);
-      frame.moveTo(999); // keep frame on top
+      frame.bringToFront();
       canvas.renderAll();
     });
   }
 };
 
-// 4. Delete selected object
+// 删除选中的对象
 document.getElementById("deleteSelected").onclick = function () {
   let obj = canvas.getActiveObject();
-  if (obj && obj !== frameObject) {
-    canvas.remove(obj);
-  }
+  if (obj && obj !== frameObject) canvas.remove(obj);
 };
 
-// 5. Download exact 1080x1440 output
+// 下载高清（无需缩放 — 因为本来就是1080x1440）
 document.getElementById("download").onclick = function () {
-  // create temp canvas for HD output
-  let exportCanvas = new fabric.Canvas(null, {
-    width: OUTPUT_WIDTH,
-    height: OUTPUT_HEIGHT
+  const dataURL = canvas.toDataURL({
+    format: "png",
+    quality: 1
   });
 
-  // clone all objects with scale factor 1080/360 = 3
-  let scaleFactor = OUTPUT_WIDTH / canvas.width;
-
-  canvas.getObjects().forEach(obj => {
-    obj.clone(clone => {
-      clone.scale(clone.scaleX * scaleFactor);
-      clone.set({
-        left: obj.left * scaleFactor,
-        top: obj.top * scaleFactor,
-        angle: obj.angle
-      });
-      exportCanvas.add(clone);
-      exportCanvas.renderAll();
-    });
-  });
-
-  // export PNG
-  let dataURL = exportCanvas.toDataURL({ format: "png", quality: 1 });
-  let link = document.createElement("a");
-  link.download = "output_1080x1440.png";
+  const link = document.createElement("a");
+  link.download = "final_1080x1440.png";
   link.href = dataURL;
   link.click();
 };
