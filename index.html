@@ -2,62 +2,228 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>1080x1440 Editor</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.2.4/fabric.min.js"></script>
-
+<title>Photo Editor</title>
 <style>
-  body {
-    font-family: Arial;
-    text-align: center;
-    background: #f1f1f1;
-  }
-  .canvas-wrapper {
-    transform: scale(0.33);
-    transform-origin: top left;
-    width: 360px;
-    height: 480px;
-    margin: 0 auto;
-  }
-  canvas {
-    border: 1px solid #000;
-  }
-  .tools {
-    margin: 10px;
-  }
-  .emoji-container img {
-    width: 60px;
-    margin: 5px;
-    cursor: pointer;
-    border: 2px solid transparent;
-  }
-  .emoji-container img:hover {
-    border-color: #000;
-  }
+    body {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        background: #f0f0f0;
+        font-family: Arial;
+    }
+    #canvasWrapper {
+        position: relative;
+        width: 360px;   /* 1080 ÷ 3 */
+        height: 480px;  /* 1440 ÷ 3 */
+        border: 1px solid #aaa;
+        background: white;
+        margin-top: 20px;
+        touch-action: none;
+    }
+    #canvas {
+        width: 100%;
+        height: 100%;
+        background: white;
+    }
+    .btn-row {
+        margin-top: 20px;
+        display: flex;
+        gap: 10px;
+    }
+    button {
+        padding: 8px 14px;
+        border-radius: 6px;
+        border: none;
+        background: #007bff;
+        color: white;
+        font-size: 14px;
+        cursor: pointer;
+    }
+    button:hover {
+        background: #0056c0;
+    }
 </style>
 </head>
-
 <body>
 
-<h2>固定 1080 x 1440 高清照片编辑器</h2>
+<h2>手机友好版本编辑器</h2>
 
-<div class="tools">
-  <input type="file" id="uploadImage" accept="image/*"><br><br>
-  <button id="toggleFrame">切换边框</button>
-  <button id="deleteSelected">删除选中对象</button>
-  <button id="download">下载（1080x1440）</button>
+<input type="file" id="uploadPhoto">
+<button onclick="addEmoji('😎')">加 Emoji 😎</button>
+<button onclick="addEmoji('🔥')">加 Emoji 🔥</button>
+<button onclick="downloadImage()">下载高清</button>
+
+<div id="canvasWrapper">
+    <canvas id="canvas" width="1080" height="1440"></canvas>
 </div>
 
-<h3>选择 Emoji:</h3>
-<div class="emoji-container">
-  <img src="emoji1.png" class="emoji-option">
-  <img src="emoji2.png" class="emoji-option">
-</div>
+<script>
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
 
-<div class="canvas-wrapper">
-  <canvas id="editorCanvas" width="1080" height="1440"></canvas>
-</div>
+let objects = []; // {type: 'photo'/'emoji', img/text, x,y, scale, rotation}
+let activeObject = null;
+let photoLocked = true;
 
-<script src="editor.js"></script>
+// --- Load photo ---
+document.getElementById("uploadPhoto").addEventListener("change", function(e){
+    const file = e.target.files[0];
+    let img = new Image();
+    img.onload = function(){
+        objects.unshift({
+            type: "photo",
+            img: img,
+            x: canvas.width / 2,
+            y: canvas.height / 2,
+            scale: 1,
+            rotation: 0
+        });
+        photoLocked = false;
+        drawAll();
+    };
+    img.src = URL.createObjectURL(file);
+});
+
+// --- Add emoji ---
+function addEmoji(emoji){
+    objects.push({
+        type: "emoji",
+        text: emoji,
+        x: canvas.width / 2,
+        y: canvas.height / 2,
+        scale: 2,
+        rotation: 0
+    });
+    drawAll();
+}
+
+// --- Draw everything ---
+function drawAll(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    objects.forEach(obj=>{
+        ctx.save();
+        ctx.translate(obj.x, obj.y);
+        ctx.rotate(obj.rotation);
+        ctx.scale(obj.scale, obj.scale);
+
+        if(obj.type === "photo"){
+            let w = obj.img.width;
+            let h = obj.img.height;
+            let ratio = Math.min(canvas.width/w, canvas.height/h);
+            ctx.drawImage(obj.img, -w*ratio/2, -h*ratio/2, w*ratio, h*ratio);
+        }
+
+        if(obj.type === "emoji"){
+            ctx.font = "200px Apple Color Emoji";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText(obj.text, 0, 0);
+        }
+
+        ctx.restore();
+    });
+}
+
+// --- Hit detection ---
+function findObjectAt(x, y){
+    for(let i = objects.length - 1; i >= 0; i--){
+        let o = objects[i];
+        let dx = x - o.x;
+        let dy = y - o.y;
+        if(Math.sqrt(dx*dx + dy*dy) < 150 * o.scale){
+            return o;
+        }
+    }
+    return null;
+}
+
+// Touch/Mouse event handling
+let startX, startY;
+let lastDist = null;
+let lastAngle = null;
+
+function startInteraction(x, y){
+    activeObject = findObjectAt(x,y);
+
+    if(activeObject){
+        if(activeObject.type === "emoji"){
+            photoLocked = true; // Lock photo
+        } else {
+            photoLocked = false;
+        }
+    }
+    startX = x;
+    startY = y;
+}
+
+function moveInteraction(x, y){
+    if(!activeObject) return;
+
+    // If photo locked and this is photo, do nothing
+    if(photoLocked && activeObject.type === "photo") return;
+
+    // Single finger drag
+    if(event.touches && event.touches.length === 1){
+        activeObject.x += (x - startX);
+        activeObject.y += (y - startY);
+        startX = x;
+        startY = y;
+    }
+
+    // Pinch zoom + rotate
+    if(event.touches && event.touches.length === 2){
+        let t1 = event.touches[0];
+        let t2 = event.touches[1];
+
+        let dx = t2.clientX - t1.clientX;
+        let dy = t2.clientY - t1.clientY;
+
+        let dist = Math.sqrt(dx*dx + dy*dy);
+        let angle = Math.atan2(dy, dx);
+
+        if(lastDist !== null){
+            activeObject.scale *= dist / lastDist;
+        }
+        if(lastAngle !== null){
+            activeObject.rotation += angle - lastAngle;
+        }
+        lastDist = dist;
+        lastAngle = angle;
+    }
+
+    drawAll();
+}
+
+function endInteraction(){
+    activeObject = null;
+    lastDist = null;
+    lastAngle = null;
+}
+
+document.addEventListener("mousedown", e => startInteraction(e.clientX, e.clientY));
+document.addEventListener("mousemove", e => moveInteraction(e.clientX, e.clientY));
+document.addEventListener("mouseup", endInteraction);
+
+document.addEventListener("touchstart", e => {
+    let t = e.touches[0];
+    startInteraction(t.clientX, t.clientY);
+});
+document.addEventListener("touchmove", e => {
+    let t = e.touches[0];
+    moveInteraction(t.clientX, t.clientY);
+});
+document.addEventListener("touchend", endInteraction);
+
+// --- Download ---
+function downloadImage(){
+    drawAll();
+    let link = document.createElement("a");
+    link.download = "final_1080x1440.png";
+    link.href = canvas.toDataURL("image/png");
+    link.click();
+}
+</script>
 
 </body>
 </html>
