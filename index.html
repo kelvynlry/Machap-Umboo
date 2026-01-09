@@ -11,9 +11,15 @@
     text-align: center;
     background: #f1f1f1;
   }
+  .canvas-wrapper {
+    transform: scale(0.33);
+    transform-origin: top left;
+    width: 360px;
+    height: 480px;
+    margin: 0 auto;
+  }
   canvas {
     border: 1px solid #000;
-    margin-top: 10px;
   }
   .tools {
     margin: 10px;
@@ -47,7 +53,9 @@
   <img src="emoji2.png" class="emoji-option">
 </div>
 
-<canvas id="editorCanvas" width="1080" height="1440"></canvas>
+<div class="canvas-wrapper">
+  <canvas id="editorCanvas" width="1080" height="1440"></canvas>
+</div>
 
 <script src="editor.js"></script>
 
