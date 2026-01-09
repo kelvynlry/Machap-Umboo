@@ -1,126 +1,164 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Photo Editor</title>
+<style>
+body { font-family: Arial; text-align:center; background:#f2f2f2; }
+#editor-wrapper { width:360px; height:480px; margin:20px auto; position:relative; background:#ccc; overflow:hidden; }
+.movable { position:absolute; cursor:move; user-select:none; }
+.hidden { display:none; }
+#emojiList img { width:60px; height:60px; margin:5px; cursor:pointer; }
+</style>
+</head>
+<body>
+
+<h2>树赢仔生成器</h2>
+
+<input type="file" id="uploadPhoto" accept="image/*"><br><br>
+<label><input type="checkbox" id="toggleFrame"> 使用边框</label><br><br>
+
+<div id="emojiList">
+  <img src="emoji1.png" class="addEmoji">
+  <img src="emoji2.png" class="addEmoji">
+</div>
+
+<div id="editor-wrapper">
+  <img id="userPhoto" class="movable hidden">
+  <img id="frame" src="frame1.png" class="hidden">
+</div>
+
+<br>
+<button id="downloadBtn">下载高清 1080x1440</button>
+
+<script>
 let currentItem = null;
 let offsetX = 0, offsetY = 0;
 
-// 上传图片
-document.getElementById("uploadPhoto").addEventListener("change", function(e) {
-    const img = document.getElementById("userPhoto");
-    const file = e.target.files[0];
-    img.src = URL.createObjectURL(file);
-    img.classList.remove("hidden");
+// 上传照片
+document.getElementById("uploadPhoto").addEventListener("change", function(e){
+  const img = document.getElementById("userPhoto");
+  const file = e.target.files[0];
+  if(!file) return;
 
-    img.onload = () => {
-        img.dataset.scale = 1;
-        img.dataset.rotate = 0;
-        img.style.left = "0px";
-        img.style.top = "0px";
-        img.style.width = img.naturalWidth + "px";
-        img.style.height = img.naturalHeight + "px";
-    };
+  img.src = URL.createObjectURL(file);
+  img.classList.remove("hidden");
+
+  img.onload = () => {
+    img.dataset.scale = 1;
+    img.dataset.rotate = 0;
+    img.style.left = "0px";
+    img.style.top = "0px";
+    img.style.width = img.naturalWidth + "px";
+    img.style.height = img.naturalHeight + "px";
+  };
 });
 
 // 切换边框
-document.getElementById("toggleFrame").addEventListener("change", function() {
-    document.getElementById("frame").style.display = this.checked ? "block" : "none";
+document.getElementById("toggleFrame").addEventListener("change", function(){
+  document.getElementById("frame").style.display = this.checked ? "block" : "none";
 });
 
-// 添加Emoji
-document.querySelectorAll(".addEmoji").forEach(emoji => {
-    emoji.onclick = () => {
-        let img = document.createElement("img");
-        img.src = emoji.src;
-        img.className = "movable";
-        img.dataset.scale = 1;
-        img.dataset.rotate = 0;
-        img.style.left = "100px";
-        img.style.top = "100px";
-        img.style.width = "120px";
-        img.style.height = "120px";
-        enableItem(img);
-        document.getElementById("editor-wrapper").appendChild(img);
-    };
+// 添加 Emoji
+document.querySelectorAll(".addEmoji").forEach(emoji=>{
+  emoji.onclick = () => {
+    let img = document.createElement("img");
+    img.src = emoji.src;
+    img.className = "movable";
+    img.dataset.scale = 1;
+    img.dataset.rotate = 0;
+    img.style.left = "100px";
+    img.style.top = "100px";
+    img.style.width = "120px";
+    img.style.height = "120px";
+    enableItem(img);
+    document.getElementById("editor-wrapper").appendChild(img);
+  };
 });
 
-// 可移动元素绑定
-document.querySelectorAll(".movable").forEach(enableItem);
-
-function enableItem(el) {
-    el.onmousedown = function(e) {
-        currentItem = el;
-        offsetX = e.clientX - parseFloat(el.style.left);
-        offsetY = e.clientY - parseFloat(el.style.top);
-    };
-
-    el.onwheel = function(e) {
-        e.preventDefault();
-        let scale = Number(el.dataset.scale);
-        scale += e.deltaY < 0 ? 0.05 : -0.05;
-        scale = Math.min(Math.max(0.2, scale), 5);
-        el.dataset.scale = scale;
-        el.style.transform = `scale(${scale}) rotate(${el.dataset.rotate}deg)`;
-    };
-
-    el.oncontextmenu = function(e) {
-        e.preventDefault();
-        let rotate = Number(el.dataset.rotate) + 15;
-        el.dataset.rotate = rotate;
-        el.style.transform = `scale(${el.dataset.scale}) rotate(${rotate}deg)`;
-    };
+// 选择 & 移动
+function enableItem(el){
+  el.onmousedown = function(e){
+    currentItem = el;
+    offsetX = e.clientX - parseFloat(el.style.left);
+    offsetY = e.clientY - parseFloat(el.style.top);
+  };
+  el.onwheel = function(e){
+    e.preventDefault();
+    let scale = Number(el.dataset.scale);
+    scale += e.deltaY < 0 ? 0.05 : -0.05;
+    scale = Math.min(Math.max(0.2, scale), 5);
+    el.dataset.scale = scale;
+    el.style.transform = `scale(${scale}) rotate(${el.dataset.rotate || 0}deg)`;
+  };
+  el.oncontextmenu = function(e){
+    e.preventDefault();
+    let rotate = Number(el.dataset.rotate || 0) + 15;
+    el.dataset.rotate = rotate;
+    el.style.transform = `scale(${el.dataset.scale}) rotate(${rotate}deg)`;
+  };
 }
 
-document.onmousemove = function(e) {
-    if (currentItem) {
-        currentItem.style.left = (e.clientX - offsetX) + "px";
-        currentItem.style.top = (e.clientY - offsetY) + "px";
-    }
+document.onmousemove = function(e){
+  if(currentItem){
+    currentItem.style.left = (e.clientX - offsetX) + "px";
+    currentItem.style.top = (e.clientY - offsetY) + "px";
+  }
 };
+document.onmouseup = function(){ currentItem=null; };
 
-document.onmouseup = function() {
-    currentItem = null;
-};
+// 下载高清 1080x1440
+document.getElementById("downloadBtn").onclick = function(){
+  const canvas = document.createElement("canvas");
+  canvas.width = 1080;
+  canvas.height = 1440;
+  const ctx = canvas.getContext("2d");
+  const editor = document.getElementById("editor-wrapper").getBoundingClientRect();
+  const scaleX = canvas.width / editor.width;
+  const scaleY = canvas.height / editor.height;
 
-// 下载高清图
-document.getElementById("downloadBtn").onclick = downloadImage;
+  // 获取所有图片，包括用户照片、emoji、frame
+  const elements = document.querySelectorAll("#editor-wrapper img");
+  let loadPromises = [];
 
-function downloadImage() {
-    const canvas = document.createElement("canvas");
-    canvas.width = 1080;
-    canvas.height = 1440;
-    const ctx = canvas.getContext("2d");
+  elements.forEach(el=>{
+    if(el.id === "frame" && el.style.display === "none") return;
+    const img = new Image();
+    img.src = el.src;
+    const p = new Promise(resolve=>{
+      img.onload = ()=>resolve({img:img, el:el});
+    });
+    loadPromises.push(p);
+  });
 
-    const editor = document.getElementById("editor-wrapper").getBoundingClientRect();
-    const scaleX = canvas.width / editor.width;
-    const scaleY = canvas.height / editor.height;
+  Promise.all(loadPromises).then(items=>{
+    items.forEach(({img, el})=>{
+      const rect = el.getBoundingClientRect();
+      const parentRect = editor;
+      const left = (rect.left - parentRect.left)*scaleX;
+      const top = (rect.top - parentRect.top)*scaleY;
+      const scale = el.dataset.scale ? Number(el.dataset.scale) : 1;
+      const rotate = el.dataset.rotate ? Number(el.dataset.rotate)*Math.PI/180 : 0;
+      const originalWidth = img.naturalWidth;
+      const originalHeight = img.naturalHeight;
+      const finalWidth = originalWidth * scale * scaleX;
+      const finalHeight = originalHeight * scale * scaleY;
 
-    const elements = document.querySelectorAll("#editor-wrapper img");
-
-    elements.forEach(el => {
-        if (el.id === "frame" && el.style.display === "none") return;
-
-        const rect = el.getBoundingClientRect();
-        const parentRect = editor;
-
-        let left = (rect.left - parentRect.left) * scaleX;
-        let top = (rect.top - parentRect.top) * scaleY;
-
-        let originalWidth = el.naturalWidth || rect.width;
-        let originalHeight = el.naturalHeight || rect.height;
-
-        let scale = el.dataset.scale ? Number(el.dataset.scale) : 1;
-        let rotate = el.dataset.rotate ? Number(el.dataset.rotate) * Math.PI / 180 : 0;
-
-        let finalWidth = originalWidth * scale * scaleX;
-        let finalHeight = originalHeight * scale * scaleY;
-
-        ctx.save();
-        ctx.translate(left + finalWidth / 2, top + finalHeight / 2);
-        ctx.rotate(rotate);
-        ctx.drawImage(el, -finalWidth / 2, -finalHeight / 2, finalWidth, finalHeight);
-        ctx.restore();
+      ctx.save();
+      ctx.translate(left + finalWidth/2, top + finalHeight/2);
+      ctx.rotate(rotate);
+      ctx.drawImage(img, -finalWidth/2, -finalHeight/2, finalWidth, finalHeight);
+      ctx.restore();
     });
 
     // 下载
     const link = document.createElement("a");
-    link.download = "output.png";
-    link.href = canvas.toDataURL("image/png", 1.0);
+    link.download = "output_1080x1440.png";
+    link.href = canvas.toDataURL("image/png",1.0);
     link.click();
-}
+  });
+};
+</script>
+
+</body>
+</html>
