@@ -1,17 +1,151 @@
 <!DOCTYPE html>
-<html>
-<body style="background:#222; color:white; font-size:20px;">
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Frame + Emoji Editor</title>
+<style>
+  body { font-family: Arial; margin: 0; padding: 0; text-align: center; background:#222; color:white; }
 
-<h2>测试图片是否能显示</h2>
+  #editor {
+    position: relative;
+    width: 360px; 
+    height: 480px;
+    margin: 20px auto;
+    border: 2px solid #555;
+    background: #333;
+    overflow: hidden;
+  }
 
-<p>边框：</p>
-<img src="frame1.png" width="200">
+  #userPhoto, .emoji {
+    position: absolute;
+    cursor: move;
+    user-select: none;
+  }
 
-<p>Emoji 1：</p>
-<img src="emoji1.png" width="100">
+  #frame {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 360px;
+    height: 480px;
+    pointer-events: none;
+  }
 
-<p>Emoji 2：</p>
-<img src="emoji2.png" width="100">
+  .btn {
+    margin: 8px;
+    padding: 8px 15px;
+    background: #00aaff;
+    border: none;
+    border-radius: 6px;
+    color: white;
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+
+<h2>上传照片 + 边框 + 表情包</h2>
+
+<input type="file" id="upload" accept="image/*"><br><br>
+
+<button class="btn" onclick="addEmoji('emoji1.png')">加入 Emoji1</button>
+<button class="btn" onclick="addEmoji('emoji2.png')">加入 Emoji2</button>
+
+<div id="editor">
+  <img id="userPhoto" style="display:none;">
+  <img id="frame" src="frame1.png">
+</div>
+
+<button class="btn" onclick="downloadImage()">下载高清图</button>
+
+<script>
+// 用户上传照片
+document.getElementById("upload").onchange = function(e) {
+  let img = document.getElementById("userPhoto");
+  img.src = URL.createObjectURL(e.target.files[0]);
+  img.style.display = "block";
+  img.style.width = "360px";
+  img.style.height = "auto";
+  img.style.top = "0px";
+  img.style.left = "0px";
+  enableDrag(img);
+};
+
+// 拖动功能
+function enableDrag(el) {
+  let offsetX, offsetY;
+
+  el.onmousedown = function(e) {
+    offsetX = e.offsetX;
+    offsetY = e.offsetY;
+
+    document.onmousemove = function(e) {
+      el.style.left = (e.pageX - editor.offsetLeft - offsetX) + "px";
+      el.style.top = (e.pageY - editor.offsetTop - offsetY) + "px";
+    };
+
+    document.onmouseup = function() {
+      document.onmousemove = null;
+    };
+  };
+}
+
+// 加入可拖动 emoji
+function addEmoji(src) {
+  let emoji = document.createElement("img");
+  emoji.src = src;
+  emoji.className = "emoji";
+  emoji.style.width = "80px";
+  emoji.style.top = "200px";
+  emoji.style.left = "150px";
+  document.getElementById("editor").appendChild(emoji);
+  enableDrag(emoji);
+}
+
+// 下载高清图
+function downloadImage() {
+  let canvas = document.createElement("canvas");
+  canvas.width = 1080;
+  canvas.height = 1440;
+  let ctx = canvas.getContext("2d");
+
+  let scaleX = 1080 / 360;
+  let scaleY = 1440 / 480;
+
+  // draw user photo
+  let user = document.getElementById("userPhoto");
+  if (user.src) {
+    ctx.drawImage(
+      user,
+      parseInt(user.style.left) * scaleX,
+      parseInt(user.style.top) * scaleY,
+      user.width * scaleX,
+      user.height * scaleY
+    );
+  }
+
+  // draw emojis
+  [...document.getElementsByClassName("emoji")].forEach(emoji => {
+    ctx.drawImage(
+      emoji,
+      parseInt(emoji.style.left) * scaleX,
+      parseInt(emoji.style.top) * scaleY,
+      emoji.width * scaleX,
+      emoji.height * scaleY
+    );
+  });
+
+  // draw frame
+  let frame = document.getElementById("frame");
+  ctx.drawImage(frame, 0, 0, 1080, 1440);
+
+  // download
+  let link = document.createElement("a");
+  link.download = "result.png";
+  link.href = canvas.toDataURL("image/png");
+  link.click();
+}
+</script>
 
 </body>
 </html>
