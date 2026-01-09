@@ -1,152 +1,17 @@
 <!DOCTYPE html>
-<html lang="zh">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>简单框 + 2 Emoji</title>
+<html>
+<body style="background:#222; color:white; font-size:20px;">
 
-<style>
-body { font-family: Arial; text-align:center; }
-#canvasWrapper {
-    width: 360px;
-    height: 480px;
-    margin:15px auto;
-    border:1px solid #ccc;
-    background:#eee;
-    position:relative;
-}
-canvas {
-    width:100%;
-    height:100%;
-    touch-action:none;
-}
-.sticker-picker img{
-    width:60px;
-    margin:5px;
-    cursor:pointer;
-}
-</style>
-</head>
-<body>
+<h2>测试图片是否能显示</h2>
 
-<h2>框 + Emoji 测试版</h2>
+<p>边框：</p>
+<img src="frame1.png" width="200">
 
-<input type="file" id="uploadPhoto" accept="image/*">
+<p>Emoji 1：</p>
+<img src="emoji1.png" width="100">
 
-<br><br>
-
-<label><input type="checkbox" id="toggleFrame"> 使用边框</label>
-
-<h3>选择 Emoji:</h3>
-<div class="sticker-picker">
-    <img src="stickers/emoji1.png" data-src="stickers/emoji1.png">
-    <img src="stickers/emoji2.png" data-src="stickers/emoji2.png">
-</div>
-
-<div id="canvasWrapper">
-    <canvas id="mainCanvas" width="1080" height="1440"></canvas>
-</div>
-
-<button id="downloadBtn">下载高清图</button>
-
-<script>
-const canvas = document.getElementById("mainCanvas");
-const ctx = canvas.getContext("2d");
-
-let photo = null;
-let frame = new Image();
-frame.src = "frames/frame1.png";
-
-let useFrame = false;
-let stickers = [];
-
-// 点击添加 emoji
-document.querySelector(".sticker-picker").addEventListener("click", e => {
-    if (e.target.tagName === "IMG") {
-        let img = new Image();
-        img.src = e.target.dataset.src;
-        stickers.push({ img: img, x: 400, y: 400, size: 300 });
-        img.onload = drawCanvas;
-    }
-});
-
-// 开关边框
-document.getElementById("toggleFrame").addEventListener("change", e => {
-    useFrame = e.target.checked;
-    drawCanvas();
-});
-
-// 上传照片
-document.getElementById("uploadPhoto").addEventListener("change", e => {
-    let reader = new FileReader();
-    reader.onload = evt => {
-        photo = new Image();
-        photo.onload = drawCanvas;
-        photo.src = evt.target.result;
-    };
-    reader.readAsDataURL(e.target.files[0]);
-});
-
-// ---- 照片拖动/缩放 ----
-let photoX = 0, photoY = 0, photoScale = 1;
-let dragging = false;
-let lastX = 0, lastY = 0;
-
-canvas.addEventListener("mousedown", e => {
-    dragging = true;
-    lastX = e.offsetX;
-    lastY = e.offsetY;
-});
-
-canvas.addEventListener("mousemove", e => {
-    if (dragging) {
-        photoX += (e.offsetX - lastX);
-        photoY += (e.offsetY - lastY);
-        lastX = e.offsetX;
-        lastY = e.offsetY;
-        drawCanvas();
-    }
-});
-
-canvas.addEventListener("mouseup", () => dragging = false);
-
-canvas.addEventListener("wheel", e => {
-    e.preventDefault();
-    photoScale += e.deltaY * -0.001;
-    if (photoScale < 0.2) photoScale = 0.2;
-    if (photoScale > 5) photoScale = 5;
-    drawCanvas();
-});
-
-// ---- 绘制内容 ----
-function drawCanvas() {
-    ctx.clearRect(0,0,1080,1440);
-
-    if (photo) {
-        let w = photo.width * photoScale;
-        let h = photo.height * photoScale;
-        ctx.drawImage(photo, photoX, photoY, w, h);
-    }
-
-    // emoji 绘制
-    stickers.forEach(st => {
-        ctx.drawImage(st.img, st.x, st.y, st.size, st.size);
-    });
-
-    // 框
-    if (useFrame) {
-        ctx.drawImage(frame, 0, 0, 1080, 1440);
-    }
-}
-
-// ---- 下载高清图 ----
-document.getElementById("downloadBtn").addEventListener("click", () => {
-    let link = document.createElement("a");
-    link.download = "output_1080x1440.jpg";
-    link.href = canvas.toDataURL("image/jpeg", 1.0);
-    link.click();
-});
-</script>
+<p>Emoji 2：</p>
+<img src="emoji2.png" width="100">
 
 </body>
 </html>
