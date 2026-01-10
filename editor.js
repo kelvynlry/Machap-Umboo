@@ -1,20 +1,17 @@
-// 初始化画布
 const canvas = new fabric.Canvas("editorCanvas", {
   width: 1080,
   height: 1440,
   preserveObjectStacking: true,
 });
 
-// 禁用 Fabric 默认角控制
+// 默认关闭角按钮
 fabric.Object.prototype.hasControls = false;
-fabric.Object.prototype.cornerSize = 0;
 
 let frameObject = null;
 
-// 上传照片
+// 上传图片
 document.getElementById("uploadImage").addEventListener("change", function (e) {
   const reader = new FileReader();
-
   reader.onload = function (event) {
     fabric.Image.fromURL(event.target.result, function (img) {
       img.set({
@@ -24,21 +21,18 @@ document.getElementById("uploadImage").addEventListener("change", function (e) {
         originY: "center",
         selectable: true
       });
-
-      img.scaleToWidth(900); // 初始缩小
+      img.scaleToWidth(900);
       canvas.add(img);
       canvas.setActiveObject(img);
       canvas.renderAll();
     });
   };
-
   reader.readAsDataURL(e.target.files[0]);
 });
 
-// 添加 emoji
+// Emoji
 document.querySelectorAll(".emoji-option").forEach(icon => {
   icon.addEventListener("click", function () {
-
     fabric.Image.fromURL(icon.src, function (emoji) {
       emoji.set({
         left: canvas.width / 2,
@@ -49,7 +43,6 @@ document.querySelectorAll(".emoji-option").forEach(icon => {
         scaleY: 0.5,
         selectable: true
       });
-
       canvas.add(emoji);
       canvas.setActiveObject(emoji);
       canvas.renderAll();
@@ -57,7 +50,7 @@ document.querySelectorAll(".emoji-option").forEach(icon => {
   });
 });
 
-// 切换边框
+// 边框
 document.getElementById("toggleFrame").onclick = function () {
   if (frameObject) {
     canvas.remove(frameObject);
@@ -65,31 +58,29 @@ document.getElementById("toggleFrame").onclick = function () {
   } else {
     fabric.Image.fromURL("frame1.png", function (frame) {
       frame.set({
-        left: canvas.width / 2,
-        top: canvas.height / 2,
+        left: 540,
+        top: 720,
         originX: "center",
         originY: "center",
         selectable: false,
-        evented: false  // 不让用户点到
+        evented: false
       });
-
-      frame.scaleToWidth(canvas.width);
+      frame.scaleToWidth(1080);
       frameObject = frame;
-
       canvas.add(frame);
-      frame.moveTo(canvas.getObjects().length - 1); // 永远在最上层
+      frame.moveTo(canvas.getObjects().length - 1);
       canvas.renderAll();
     });
   }
 };
 
-// 删除选中对象
+// 删除
 document.getElementById("deleteSelected").onclick = function () {
   const obj = canvas.getActiveObject();
   if (obj && obj !== frameObject) canvas.remove(obj);
 };
 
-// 控制按钮（缩放 / 旋转）
+// 控制按钮
 function modifySelected(type) {
   const obj = canvas.getActiveObject();
   if (!obj || obj === frameObject) return;
@@ -107,7 +98,6 @@ document.getElementById("scaleDown").onclick = () => modifySelected("scaleDown")
 document.getElementById("rotateLeft").onclick = () => modifySelected("rotateLeft");
 document.getElementById("rotateRight").onclick = () => modifySelected("rotateRight");
 
-// 下载高清图
 document.getElementById("download").onclick = function () {
   const link = document.createElement("a");
   link.download = "final_1080x1440.png";

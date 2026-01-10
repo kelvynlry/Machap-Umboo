@@ -14,21 +14,35 @@
     padding: 0;
   }
 
-  /* 画布显示外框，让用户清楚看到范围 */
+  /* 新的画布容器 */
   .canvas-wrapper {
-    width: 1080px;
-    height: 1440px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
     margin: 20px auto;
     border: 4px solid #333;
     background: white;
-    transform-origin: top center;
+    width: 1080px;
+    height: 1440px;
+
+    /* 保证位置正确 */
+    transform-origin: top left;
   }
 
   canvas {
-    border: 1px solid #999; /* 画布线条，让用户能看到边 */
-    background: #ffffff;
+    border: 1px solid #999;
+    background: white;
   }
 
+  /* 手机适配 */
+  @media (max-width: 600px) {
+    .canvas-wrapper {
+      transform: scale(0.3);
+      margin-top: 0;
+    }
+  }
+
+  /* emoji 网格 */
   .emoji-container {
     width: 90%;
     max-width: 360px;
@@ -38,7 +52,7 @@
     gap: 6px;
     padding: 10px;
     max-height: 180px;
-    overflow-y: scroll;
+    overflow-y: auto;
     background: white;
     border: 1px solid #ccc;
   }
@@ -46,11 +60,6 @@
   .emoji-container img {
     width: 50px;
     cursor: pointer;
-    border: 2px solid transparent;
-  }
-
-  .emoji-container img:hover {
-    border-color: #000;
   }
 </style>
 </head>
@@ -75,7 +84,7 @@
   </script>
 </div>
 
-<!-- 控制按钮 -->
+<h3>控制选中对象</h3>
 <div>
   <button id="scaleUp">放大+</button>
   <button id="scaleDown">缩小-</button>
@@ -83,30 +92,11 @@
   <button id="rotateRight">右旋转 ↻</button>
 </div>
 
-<!-- 画布区 -->
-<div id="canvasContainer" class="canvas-wrapper">
+<div class="canvas-wrapper">
   <canvas id="editorCanvas" width="1080" height="1440"></canvas>
 </div>
 
 <script src="editor.js"></script>
-
-<script>
-/* 自动缩放画布以适配手机 */
-function adjustScale() {
-  const wrapper = document.querySelector(".canvas-wrapper");
-  const screenWidth = window.innerWidth;
-
-  if (screenWidth < 600) {
-    const scale = screenWidth / 1080;
-    wrapper.style.transform = `scale(${scale})`;
-  } else {
-    wrapper.style.transform = "scale(0.33)";
-  }
-}
-
-window.addEventListener("load", adjustScale);
-window.addEventListener("resize", adjustScale);
-</script>
 
 </body>
 </html>
