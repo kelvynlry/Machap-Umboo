@@ -12,25 +12,18 @@
     background: #f1f1f1;
   }
 
+  /* 自动根据设备调整缩放比例 */
   .canvas-wrapper {
-    transform: scale(0.33);
-    transform-origin: top left;
-    width: 360px;
-    height: 480px;
+    width: 1080px;
+    height: 1440px;
     margin: 20px auto;
+    transform-origin: top center;
   }
 
-  canvas {
-    border: 1px solid #000;
-  }
-
-  .tools {
-    margin: 10px;
-  }
-
-  /* Emoji 格子布局 */
+  /* emoji 网格 */
   .emoji-container {
-    width: 360px;
+    width: 90%;
+    max-width: 360px;
     margin: 0 auto;
     display: grid;
     grid-template-columns: repeat(6, 1fr);
@@ -51,7 +44,6 @@
     border-color: #000;
   }
 
-  /* 控制按钮 */
   .edit-controls button {
     padding: 6px 12px;
     margin: 3px;
@@ -92,6 +84,25 @@
 <div class="canvas-wrapper">
   <canvas id="editorCanvas" width="1080" height="1440"></canvas>
 </div>
+
+<script>
+  function adjustScale() {
+    const wrapper = document.querySelector(".canvas-wrapper");
+    const screenWidth = window.innerWidth;
+
+    if (screenWidth < 600) {
+      // 手机，缩放到屏幕宽度
+      const scale = screenWidth / 1080;
+      wrapper.style.transform = `scale(${scale})`;
+    } else {
+      // 电脑，固定 0.33
+      wrapper.style.transform = "scale(0.33)";
+    }
+  }
+
+  window.addEventListener("load", adjustScale);
+  window.addEventListener("resize", adjustScale);
+</script>
 
 <script src="editor.js"></script>
 
