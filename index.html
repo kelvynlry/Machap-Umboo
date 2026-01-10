@@ -1,215 +1,88 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta charset="UTF-8" />
-<title>Editor Fixed Version</title>
+<meta charset="UTF-8">
+<title>1080x1440 Editor</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.2.4/fabric.min.js"></script>
+
 <style>
-    #wrapper {
-        width: 360px;       /* 显示区域等比缩小 */
-        height: 480px;
-        border: 1px solid #ddd;
-        margin: 20px auto;
-        position: relative;
-        touch-action: none;
-    }
-    canvas {
-        width: 100%;
-        height: 100%;
-        position: absolute;
-        left:0; top:0;
-        pointer-events: none;
-    }
-    .top-controls {
-        margin: 20px;
-        display: flex;
-        gap: 10px;
-    }
+  body {
+    font-family: Arial;
+    text-align: center;
+    background: #f1f1f1;
+  }
+  .canvas-wrapper {
+    transform: scale(0.33);
+    transform-origin: top left;
+    width: 360px;
+    height: 480px;
+    margin: 0 auto;
+  }
+  canvas {
+    border: 1px solid #000;
+  }
+  .tools {
+    margin: 10px;
+  }
+  .emoji-container img {
+    width: 60px;
+    margin: 5px;
+    cursor: pointer;
+    border: 2px solid transparent;
+  }
+  .emoji-container img:hover {
+    border-color: #000;
+  }
 </style>
 </head>
+
 <body>
 
-<div class="top-controls">
-    <input type="file" id="uploadPhoto">
-    <button onclick="addEmoji('emoji1.png')">添加Emoji1</button>
-    <button onclick="addEmoji('emoji2.png')">添加Emoji2</button>
-    <button onclick="downloadImage()">下载高清</button>
+<h2>树赢仔贴纸</h2>
+
+<div class="tools">
+  <input type="file" id="uploadImage" accept="image/*"><br><br>
+  <button id="toggleFrame">切换边框</button>
+  <button id="deleteSelected">删除选中对象</button>
+  <button id="download">下载（1080x1440）</button>
 </div>
 
-<div id="wrapper">
-    <canvas id="backgroundCanvas" width="1080" height="1440"></canvas>
-    <canvas id="editCanvas" width="1080" height="1440"></canvas>
-    <canvas id="frameCanvas" width="1080" height="1440"></canvas>
+<h3>选择 Emoji:</h3>
+<div class="emoji-container">
+  <img src="emoji1.png" class="emoji-option">
+  <img src="emoji2.png" class="emoji-option">
+  <img src="emoji3.png" class="emoji-option">
+  <img src="emoji4.png" class="emoji-option">
+  <img src="emoji5.png" class="emoji-option">
+  <img src="emoji6.png" class="emoji-option">
+  <img src="emoji7.png" class="emoji-option">
+  <img src="emoji8.png" class="emoji-option">
+  <img src="emoji9.png" class="emoji-option">
+  <img src="emoji10.png" class="emoji-option">
+  <img src="emoji11.png" class="emoji-option">
+  <img src="emoji12.png" class="emoji-option">
+  <img src="emoji13.png" class="emoji-option">
+  <img src="emoji14.png" class="emoji-option">
+  <img src="emoji15.png" class="emoji-option">
+  <img src="emoji16.png" class="emoji-option">
+  <img src="emoji17.png" class="emoji-option">
+  <img src="emoji18.png" class="emoji-option">
+  <img src="emoji19.png" class="emoji-option">
+  <img src="emoji20.png" class="emoji-option">
+  <img src="emoji21.png" class="emoji-option">
+  <img src="emoji22.png" class="emoji-option">
+  <img src="emoji23.png" class="emoji-option">
+  <img src="emoji24.png" class="emoji-option">
+  <img src="emoji25.png" class="emoji-option">
+  <img src="emoji26.png" class="emoji-option">
+  <img src="emoji27.png" class="emoji-option">
 </div>
 
-<script>
-const bg = document.getElementById("backgroundCanvas");
-const edit = document.getElementById("editCanvas");
-const frame = document.getElementById("frameCanvas");
+<div class="canvas-wrapper">
+  <canvas id="editorCanvas" width="1080" height="1440"></canvas>
+</div>
 
-const bgCtx = bg.getContext("2d");
-const editCtx = edit.getContext("2d");
-const frameCtx = frame.getContext("2d");
-
-// 保存对象（照片 + emoji）
-let objects = [];
-let selected = null;
-let photoLocked = false;
-
-// 加载照片
-document.getElementById("uploadPhoto").addEventListener("change", e=>{
-    const file = e.target.files[0];
-    const img = new Image();
-    img.onload = ()=>{
-        objects.unshift({
-            type:"photo",
-            img: img,
-            x: bg.width / 2,
-            y: bg.height / 2,
-            scale:1,
-            angle:0
-        });
-        drawAll();
-    };
-    img.src = URL.createObjectURL(file);
-});
-
-// 加载 emoji
-function addEmoji(path){
-    const img = new Image();
-    img.onload = ()=>{
-        objects.push({
-            type:"emoji",
-            img: img,
-            x: bg.width / 2,
-            y: bg.height / 2,
-            scale:1,
-            angle:0
-        });
-        drawAll();
-    };
-    img.src = path;
-}
-
-// 绘制全部
-function drawAll(){
-    bgCtx.clearRect(0,0,bg.width,bg.height);
-    editCtx.clearRect(0,0,edit.width,edit.height);
-    frameCtx.clearRect(0,0,frame.width,frame.height);
-
-    // draw photo first
-    objects.forEach(obj=>{
-        bgCtx.save();
-        bgCtx.translate(obj.x, obj.y);
-        bgCtx.rotate(obj.angle);
-        bgCtx.scale(obj.scale, obj.scale);
-        const w = obj.img.width;
-        const h = obj.img.height;
-        bgCtx.drawImage(obj.img, -w/2, -h/2);
-        bgCtx.restore();
-    });
-
-    // draw emoji on edit canvas
-    objects.forEach(obj=>{
-        if(obj.type==="emoji"){
-            editCtx.save();
-            editCtx.translate(obj.x, obj.y);
-            editCtx.rotate(obj.angle);
-            editCtx.scale(obj.scale, obj.scale);
-            const w = obj.img.width;
-            const h = obj.img.height;
-            editCtx.drawImage(obj.img, -w/2, -h/2);
-            editCtx.restore();
-        }
-    });
-
-    // draw frame
-    frameCtx.strokeStyle = "black";
-    frameCtx.lineWidth = 40;
-    frameCtx.strokeRect(0,0,frame.width,frame.height);
-}
-
-// 检测点击到了哪个对象
-function findObjectAt(x, y){
-    for(let i=objects.length-1;i>=0;i--){
-        const o = objects[i];
-        const dx = x - o.x;
-        const dy = y - o.y;
-        const dist = Math.sqrt(dx*dx + dy*dy);
-        if(dist < 200 * o.scale){
-            return o;
-        }
-    }
-    return null;
-}
-
-// pointer events
-let startX, startY;
-
-function pointerDown(e){
-    const rect = bg.getBoundingClientRect();
-    const x = (e.clientX - rect.left) * (1080/rect.width);
-    const y = (e.clientY - rect.top) * (1440/rect.height);
-
-    selected = findObjectAt(x,y);
-
-    if(selected){
-        // 锁定背景照片 —只能选中时移动
-        photoLocked = (selected.type !== "photo");
-    }
-
-    startX = x;
-    startY = y;
-}
-
-function pointerMove(e){
-    if(!selected) return;
-
-    const rect = bg.getBoundingClientRect();
-    const x = (e.clientX - rect.left) * (1080/rect.width);
-    const y = (e.clientY - rect.top) * (1440/rect.height);
-
-    // 如果背景照片被锁定，不能移动
-    if(photoLocked && selected.type==="photo") return;
-
-    selected.x += (x - startX);
-    selected.y += (y - startY);
-
-    startX = x;
-    startY = y;
-
-    drawAll();
-}
-
-function pointerUp(){
-    selected = null;
-}
-
-document.addEventListener("pointerdown", pointerDown);
-document.addEventListener("pointermove", pointerMove);
-document.addEventListener("pointerup", pointerUp);
-
-// 下载高清
-function downloadImage(){
-    const finalCanvas = document.createElement("canvas");
-    finalCanvas.width = 1080;
-    finalCanvas.height = 1440;
-    const ctx = finalCanvas.getContext("2d");
-
-    // 先画照片层
-    ctx.drawImage(bg,0,0);
-
-    // 再画 emoji
-    ctx.drawImage(edit,0,0);
-
-    // 最后画边框
-    ctx.drawImage(frame,0,0);
-
-    const link = document.createElement("a");
-    link.download = "1080x1440.png";
-    link.href = finalCanvas.toDataURL("image/png");
-    link.click();
-}
-</script>
+<script src="editor.js"></script>
 
 </body>
 </html>
