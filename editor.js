@@ -1,23 +1,19 @@
-// 初始化画布 1080x1440
+// 初始化画布
 const canvas = new fabric.Canvas("editorCanvas", {
   width: 1080,
   height: 1440,
-  preserveObjectStacking: true
+  preserveObjectStacking: true,
 });
 
-// --- 控制点放大，缩放旋转更好控制 ---
-fabric.Object.prototype.cornerSize = 30;
-fabric.Object.prototype.transparentCorners = false;
-fabric.Object.prototype.cornerColor = "blue";
-fabric.Object.prototype.cornerStrokeColor = "white";
-fabric.Object.prototype.cornerStyle = "circle";
-fabric.Object.prototype.centeredScaling = true;
+// 禁用拖拉角点缩放旋转
+fabric.Object.prototype.hasControls = false;
+fabric.Object.prototype.cornerSize = 0;
 
 let frameObject = null;
 
 // 上传照片
 document.getElementById("uploadImage").addEventListener("change", function (e) {
-  let reader = new FileReader();
+  const reader = new FileReader();
 
   reader.onload = function (event) {
     fabric.Image.fromURL(event.target.result, function (img) {
@@ -26,7 +22,6 @@ document.getElementById("uploadImage").addEventListener("change", function (e) {
         top: canvas.height / 2,
         originX: "center",
         originY: "center",
-        hasControls: true,
         selectable: true
       });
 
@@ -46,13 +41,12 @@ document.querySelectorAll(".emoji-option").forEach(icon => {
 
     fabric.Image.fromURL(icon.src, function (emoji) {
       emoji.set({
-        left: 500,
-        top: 500,
+        left: canvas.width / 2,
+        top: canvas.height / 2,
         originX: "center",
         originY: "center",
-        scaleX: 0.4,
-        scaleY: 0.4,
-        hasRotatingPoint: true,
+        scaleX: 0.5,
+        scaleY: 0.5,
         selectable: true
       });
 
@@ -60,7 +54,6 @@ document.querySelectorAll(".emoji-option").forEach(icon => {
       canvas.setActiveObject(emoji);
       canvas.renderAll();
     });
-
   });
 });
 
@@ -71,14 +64,13 @@ document.getElementById("toggleFrame").onclick = function () {
     frameObject = null;
   } else {
     fabric.Image.fromURL("frame1.png", function (frame) {
-
       frame.set({
         left: canvas.width / 2,
         top: canvas.height / 2,
         originX: "center",
         originY: "center",
         selectable: false,
-        evented: false  // 🔥 不阻挡点击事件
+        evented: false
       });
 
       frame.scaleToWidth(canvas.width);
@@ -91,13 +83,31 @@ document.getElementById("toggleFrame").onclick = function () {
   }
 };
 
-// 删除对象
+// 删除选中对象
 document.getElementById("deleteSelected").onclick = function () {
   const obj = canvas.getActiveObject();
   if (obj && obj !== frameObject) canvas.remove(obj);
 };
 
-// 下载 1080x1440 高清
+// 缩放 + 旋转按钮操作
+function modifySelected(type) {
+  const obj = canvas.getActiveObject();
+  if (!obj || obj === frameObject) return;
+
+  if (type === "scaleUp") obj.scale(obj.scaleX * 1.1);
+  if (type === "scaleDown") obj.scale(obj.scaleX * 0.9);
+  if (type === "rotateLeft") obj.rotate(obj.angle - 10);
+  if (type === "rotateRight") obj.rotate(obj.angle + 10);
+
+  canvas.renderAll();
+}
+
+document.getElementById("scaleUp").onclick = () => modifySelected("scaleUp");
+document.getElementById("scaleDown").onclick = () => modifySelected("scaleDown");
+document.getElementById("rotateLeft").onclick = () => modifySelected("rotateLeft");
+document.getElementById("rotateRight").onclick = () => modifySelected("rotateRight");
+
+// 下载高清图
 document.getElementById("download").onclick = function () {
   const link = document.createElement("a");
   link.download = "final_1080x1440.png";

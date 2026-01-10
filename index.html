@@ -11,29 +11,53 @@
     text-align: center;
     background: #f1f1f1;
   }
+
   .canvas-wrapper {
     transform: scale(0.33);
     transform-origin: top left;
     width: 360px;
     height: 480px;
-    margin: 0 auto;
+    margin: 20px auto;
   }
+
   canvas {
     border: 1px solid #000;
   }
+
   .tools {
     margin: 10px;
   }
+
+  /* Emoji 格子布局 */
+  .emoji-container {
+    width: 360px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 6px;
+    padding: 10px;
+    max-height: 180px;
+    overflow-y: scroll;
+    background: white;
+    border: 1px solid #ccc;
+  }
+
   .emoji-container img {
-    width: 60px;
-    margin: 5px;
+    width: 50px;
     cursor: pointer;
     border: 2px solid transparent;
   }
   .emoji-container img:hover {
     border-color: #000;
   }
+
+  /* 控制按钮 */
+  .edit-controls button {
+    padding: 6px 12px;
+    margin: 3px;
+  }
 </style>
+
 </head>
 
 <body>
@@ -44,38 +68,25 @@
   <input type="file" id="uploadImage" accept="image/*"><br><br>
   <button id="toggleFrame">切换边框</button>
   <button id="deleteSelected">删除选中对象</button>
-  <button id="download">下载（1080x1440）</button>
+  <button id="download">下载</button>
 </div>
 
 <h3>选择 Emoji:</h3>
 <div class="emoji-container">
-  <img src="emoji1.png" class="emoji-option">
-  <img src="emoji2.png" class="emoji-option">
-  <img src="emoji3.png" class="emoji-option">
-  <img src="emoji4.png" class="emoji-option">
-  <img src="emoji5.png" class="emoji-option">
-  <img src="emoji6.png" class="emoji-option">
-  <img src="emoji7.png" class="emoji-option">
-  <img src="emoji8.png" class="emoji-option">
-  <img src="emoji9.png" class="emoji-option">
-  <img src="emoji10.png" class="emoji-option">
-  <img src="emoji11.png" class="emoji-option">
-  <img src="emoji12.png" class="emoji-option">
-  <img src="emoji13.png" class="emoji-option">
-  <img src="emoji14.png" class="emoji-option">
-  <img src="emoji15.png" class="emoji-option">
-  <img src="emoji16.png" class="emoji-option">
-  <img src="emoji17.png" class="emoji-option">
-  <img src="emoji18.png" class="emoji-option">
-  <img src="emoji19.png" class="emoji-option">
-  <img src="emoji20.png" class="emoji-option">
-  <img src="emoji21.png" class="emoji-option">
-  <img src="emoji22.png" class="emoji-option">
-  <img src="emoji23.png" class="emoji-option">
-  <img src="emoji24.png" class="emoji-option">
-  <img src="emoji25.png" class="emoji-option">
-  <img src="emoji26.png" class="emoji-option">
-  <img src="emoji27.png" class="emoji-option">
+  <!-- 自动加载 emoji1.png 到 emoji27.png -->
+  <script>
+    for (let i = 1; i <= 27; i++) {
+      document.write(`<img src="emoji${i}.png" class="emoji-option">`);
+    }
+  </script>
+</div>
+
+<h3>对象控制</h3>
+<div class="edit-controls">
+  <button id="scaleUp">放大 +</button>
+  <button id="scaleDown">缩小 -</button>
+  <button id="rotateLeft">左旋转 ↺</button>
+  <button id="rotateRight">右旋转 ↻</button>
 </div>
 
 <div class="canvas-wrapper">
