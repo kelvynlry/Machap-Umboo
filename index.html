@@ -9,18 +9,26 @@
   body {
     font-family: Arial;
     text-align: center;
-    background: #f1f1f1;
+    background: #e8e8e8;
+    margin: 0;
+    padding: 0;
   }
 
-  /* 自动根据设备调整缩放比例 */
+  /* 画布显示外框，让用户清楚看到范围 */
   .canvas-wrapper {
     width: 1080px;
     height: 1440px;
     margin: 20px auto;
+    border: 4px solid #333;
+    background: white;
     transform-origin: top center;
   }
 
-  /* emoji 网格 */
+  canvas {
+    border: 1px solid #999; /* 画布线条，让用户能看到边 */
+    background: #ffffff;
+  }
+
   .emoji-container {
     width: 90%;
     max-width: 360px;
@@ -40,32 +48,26 @@
     cursor: pointer;
     border: 2px solid transparent;
   }
+
   .emoji-container img:hover {
     border-color: #000;
   }
-
-  .edit-controls button {
-    padding: 6px 12px;
-    margin: 3px;
-  }
 </style>
-
 </head>
 
 <body>
 
 <h2>树赢仔贴纸</h2>
 
-<div class="tools">
-  <input type="file" id="uploadImage" accept="image/*"><br><br>
+<div>
+  <input type="file" id="uploadImage" accept="image/*">
   <button id="toggleFrame">切换边框</button>
   <button id="deleteSelected">删除选中对象</button>
-  <button id="download">下载</button>
+  <button id="download">下载高清图</button>
 </div>
 
 <h3>选择 Emoji:</h3>
 <div class="emoji-container">
-  <!-- 自动加载 emoji1.png 到 emoji27.png -->
   <script>
     for (let i = 1; i <= 27; i++) {
       document.write(`<img src="emoji${i}.png" class="emoji-option">`);
@@ -73,38 +75,38 @@
   </script>
 </div>
 
-<h3>对象控制</h3>
-<div class="edit-controls">
-  <button id="scaleUp">放大 +</button>
-  <button id="scaleDown">缩小 -</button>
+<!-- 控制按钮 -->
+<div>
+  <button id="scaleUp">放大+</button>
+  <button id="scaleDown">缩小-</button>
   <button id="rotateLeft">左旋转 ↺</button>
   <button id="rotateRight">右旋转 ↻</button>
 </div>
 
-<div class="canvas-wrapper">
+<!-- 画布区 -->
+<div id="canvasContainer" class="canvas-wrapper">
   <canvas id="editorCanvas" width="1080" height="1440"></canvas>
 </div>
 
-<script>
-  function adjustScale() {
-    const wrapper = document.querySelector(".canvas-wrapper");
-    const screenWidth = window.innerWidth;
-
-    if (screenWidth < 600) {
-      // 手机，缩放到屏幕宽度
-      const scale = screenWidth / 1080;
-      wrapper.style.transform = `scale(${scale})`;
-    } else {
-      // 电脑，固定 0.33
-      wrapper.style.transform = "scale(0.33)";
-    }
-  }
-
-  window.addEventListener("load", adjustScale);
-  window.addEventListener("resize", adjustScale);
-</script>
-
 <script src="editor.js"></script>
+
+<script>
+/* 自动缩放画布以适配手机 */
+function adjustScale() {
+  const wrapper = document.querySelector(".canvas-wrapper");
+  const screenWidth = window.innerWidth;
+
+  if (screenWidth < 600) {
+    const scale = screenWidth / 1080;
+    wrapper.style.transform = `scale(${scale})`;
+  } else {
+    wrapper.style.transform = "scale(0.33)";
+  }
+}
+
+window.addEventListener("load", adjustScale);
+window.addEventListener("resize", adjustScale);
+</script>
 
 </body>
 </html>

@@ -5,7 +5,7 @@ const canvas = new fabric.Canvas("editorCanvas", {
   preserveObjectStacking: true,
 });
 
-// 禁用拖拉角点缩放旋转
+// 禁用 Fabric 默认角控制
 fabric.Object.prototype.hasControls = false;
 fabric.Object.prototype.cornerSize = 0;
 
@@ -25,7 +25,7 @@ document.getElementById("uploadImage").addEventListener("change", function (e) {
         selectable: true
       });
 
-      img.scaleToWidth(900);
+      img.scaleToWidth(900); // 初始缩小
       canvas.add(img);
       canvas.setActiveObject(img);
       canvas.renderAll();
@@ -35,7 +35,7 @@ document.getElementById("uploadImage").addEventListener("change", function (e) {
   reader.readAsDataURL(e.target.files[0]);
 });
 
-// 点击 emoji 添加
+// 添加 emoji
 document.querySelectorAll(".emoji-option").forEach(icon => {
   icon.addEventListener("click", function () {
 
@@ -70,14 +70,14 @@ document.getElementById("toggleFrame").onclick = function () {
         originX: "center",
         originY: "center",
         selectable: false,
-        evented: false
+        evented: false  // 不让用户点到
       });
 
       frame.scaleToWidth(canvas.width);
       frameObject = frame;
 
       canvas.add(frame);
-      frame.moveTo(canvas.getObjects().length - 1);
+      frame.moveTo(canvas.getObjects().length - 1); // 永远在最上层
       canvas.renderAll();
     });
   }
@@ -89,7 +89,7 @@ document.getElementById("deleteSelected").onclick = function () {
   if (obj && obj !== frameObject) canvas.remove(obj);
 };
 
-// 缩放 + 旋转按钮操作
+// 控制按钮（缩放 / 旋转）
 function modifySelected(type) {
   const obj = canvas.getActiveObject();
   if (!obj || obj === frameObject) return;
